@@ -18,7 +18,7 @@ We believe that payments is a problem rooted in code, not finance. We obsessivel
 	* Send Email If payment is failed/passed.
 	* Save Customer Reference id and transaction Reference id into our database.
 
-* Multi-tanant support.
+* Multi-tenant support.
 	* Ability to create multiple sub-sites within single Merchant Account.
 
 * Batch Payments
