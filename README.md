@@ -1,5 +1,4 @@
 # payment-services-prodio
-=========================
 
 Prodio-Payments is a express based facade to multiple payment services.  
 The idea is an simple and inutive API to handle just simple single payments. It's als designed to add more payment services over time, but without changing the general API.
@@ -10,7 +9,7 @@ For every provider the required messaging endpoint, like Cayan's Key, will be at
 
 We believe that payments is a problem rooted in code, not finance. We obsessively seek out elegant, composable abstractions that enable robust, scalable, flexible integrations. Because we eliminate needless complexity and extraneous details, you can get up and running with the module in just a couple of minutes.
 
-#### Features
+# Features
 
 * Quick Payments
 	* Create Customer in respective provider.
@@ -50,9 +49,10 @@ We believe that payments is a problem rooted in code, not finance. We obsessivel
 * WebHooks.
  
 
-#### Currently applied services
+### Currently Supported Payment Gateways
 
 * [Cayan](https://cayan.com)
+
 
 # Installation
 1. Clone this repository on your server `git clone https://github.com/ProdioDesignWorks/payment-services-prodio.git`
