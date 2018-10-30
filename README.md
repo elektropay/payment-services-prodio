@@ -11,6 +11,9 @@ We believe that payments is a problem rooted in code, not finance. We obsessivel
 
 # Features
 
+* Merchant Registration
+	* The subscriber is able to signup as merchant to any given provider.
+
 * Quick Payments
 	* Create Customer in respective provider.
 	* Save Card Info (If opted, as per PCI Compliance)
