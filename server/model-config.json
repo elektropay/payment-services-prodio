@@ -29,6 +29,7 @@
         "sharedMethods": {
           "*": false,
           "createMerchant": true,
+          "getPayeesListing": true,
           "removeById": true
         }
       }

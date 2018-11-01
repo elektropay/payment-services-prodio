@@ -26,7 +26,7 @@ const unique = () => uuid();
 
 const isValidObject = obj => !isUndefined(obj) && !isNull(obj) && !isEmpty(obj);
 
-const isValid = str => !isUndefined(obj) && !isNull(obj) && str.length;
+const isValid = str => !isUndefined(str) && !isNull(str) && str.length;
 
 const flattenArray = arr => flatten(arr);
 

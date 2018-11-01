@@ -7,7 +7,21 @@
     "validateUpsert": true
   },
   "properties": {
-    "userId": {
+    "payeeId": {
+      "id": true,
+      "type": "string",
+      "defaultFn": "uuidv4"
+    },
+    "firstName": {
+      "type": "string"
+    },
+    "lastName": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "mobileNumber": {
       "type": "string"
     },
     "merchantId": {
@@ -25,7 +39,18 @@
     }
   },
   "validations": [],
-  "relations": {},
+  "relations": {
+    "Merchant": {
+      "type": "belongsTo",
+      "model": "ezpayMerchants",
+      "property": "merchantId",
+      "options": {
+        "validate": true,
+        "persistent": true,
+        "nestRemoting": false
+      }
+    }
+  },
   "acls": [],
   "methods": {}
 }
