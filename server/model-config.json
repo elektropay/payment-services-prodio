@@ -21,23 +21,24 @@
     "dataSource": "db",
     "public": true
   },
-  "ezpay-merchants": {
+  "ezpayMerchants": {
     "dataSource": "db",
     "public": true,
     "options": {
-     "remoting": {
-       "sharedMethods": {
-         "*": false,
-         "createMerchant": true
-       }
-     }
-   }
+      "remoting": {
+        "sharedMethods": {
+          "*": false,
+          "createMerchant": true,
+          "removeById": true
+        }
+      }
+    }
   },
-  "ezpay-payees": {
+  "ezpayPayees": {
     "dataSource": "db",
     "public": true
   },
-  "ezpay-payment-transactions": {
+  "ezpayPaymentTransactions": {
     "dataSource": "db",
     "public": true
   }

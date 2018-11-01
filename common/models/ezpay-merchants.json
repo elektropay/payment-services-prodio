@@ -1,6 +1,6 @@
 {
-  "name": "ezpay-merchants",
-  "plural": "ezpay-merchants",
+  "name": "ezpayMerchants",
+  "plural": "ezpayMerchants",
   "base": "PersistedModel",
   "idInjection": true,
   "options": {

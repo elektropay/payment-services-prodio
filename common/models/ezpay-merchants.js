@@ -13,15 +13,8 @@ const {
 } = require('../../utility/helper');
 
 module.exports = function(Ezpaymerchants) {
-	//const enabledRemoteMethods = ["prototype.replaceAttributes"];
-	// Ezpaymerchants.sharedClass.methods().forEach(method => {
-	// 	const methodName = method.stringName.replace(/.*?(?=\.)/, '').substr(1);
-	// 	if (enabledRemoteMethods.indexOf(methodName) === -1) {
-	// 	  Ezpaymerchants.disableRemoteMethodByName(methodName);
-	// 	}
-	// });
 
-	Ezpaymerchants.remoteMethod(
+		Ezpaymerchants.remoteMethod(
           'createMerchant', {
                http: {
                     path: '/createMerchant/:userId',
@@ -53,11 +46,37 @@ module.exports = function(Ezpaymerchants) {
 	Ezpaymerchants.createMerchant = (userId, userInfo, cb) => {
           const { 
                user_id = '', 
-               props = {}, 
-               payload = {} 
+               payees = {}, 
+               billing = {} 
           } = userInfo;
-          print(userInfo);
-          cb(null,{"status":1});
+          print(payees);
+          //TODO : Integrating actual Payment Gateway API
+
+          Ezpaymerchants.findOne({where: {"userId":userId}}).then(user => {
+
+               if(isValidObject(user)){
+                    return cb(new HttpErrors.NotFound('user already exist', { expose: false }));
+               }else{
+               		let saveMerchant = {
+               			"userId": userId,
+               			"paymentGateway":"CAYAN",
+               			"isActive": true,
+               			"createdAt": new Date(),
+               			"updatedAt": new Date()
+               		};
+               		
+               		Ezpaymerchants.create(saveMerchant).then(merchantObj => {
+                          return cb(null, merchantObj);
+                     }).catch(error => {
+                          print(error);
+                          return cb(new HttpErrors.InternalServerError('Db connection failed', { expose: false }));
+                     });
+               }
+               
+          }).catch(error => {
+               print(error);
+               return cb(new HttpErrors.InternalServerError('Db connection failed', { expose: false }));
+          });
     }
 
 };

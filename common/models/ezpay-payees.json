@@ -1,6 +1,6 @@
 {
-  "name": "ezpay-payees",
-  "plural": "ezpay-payees",
+  "name": "ezpayPayees",
+  "plural": "ezpayPayees",
   "base": "PersistedModel",
   "idInjection": true,
   "options": {

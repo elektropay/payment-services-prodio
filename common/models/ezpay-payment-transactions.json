@@ -1,6 +1,6 @@
 {
-  "name": "ezpay-payment-transactions",
-  "plural": "ezpay-payment-transactions",
+  "name": "ezpayPaymentTransactions",
+  "plural": "ezpayPaymentTransactions",
   "base": "PersistedModel",
   "idInjection": true,
   "options": {
