@@ -62,8 +62,8 @@ We believe that payments is a problem rooted in code, not finance. We obsessivel
 2. Navigate to your repo `cd payment-services-prodio`
 3. Install dependencies `npm install`
 4. Start service `node .` or `npm start` or `node server/server.js`
-5. Open `http://localhost:3000/explorer/` in your browser
-5. If you've pm2 installed then use this `pm2 start server/server.js --name="PAYMENT_SERVICE"`
+5. Open `http://localhost:3010/explorer/` in your browser (Note: The port 3010 should be allowed in server firewall OR In the AWS Security Groups)
+6. If you've pm2 installed then use this `pm2 start server/server.js --name="PAYMENT_SERVICE"`
 #### NOTE: 
 `payment-services-prodio` uses loopback as the core framework for developing API's, so all customisations, configurations, middlewares, events, and db connectors can be used which you would have used in loopback. 
 

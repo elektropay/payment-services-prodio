@@ -1,0 +1,43 @@
+{
+  "name": "savedCardsMetaData",
+  "plural": "savedCardsMetaData",
+  "base": "PersistedModel",
+  "idInjection": true,
+  "options": {
+    "validateUpsert": true
+  },
+  "properties": {
+    "userId": {
+      "type": "string"
+    },
+    "cardHolderName": {
+      "type": "string"
+    },
+    "cardNumberLastDigits": {
+      "type": "string"
+    },
+    "expiryDate": {
+      "type": "string"
+    },
+    "cardRefId": {
+      "type": "string"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    },
+    "savedAt": {
+      "type": "date"
+    }
+  },
+  "validations": [],
+  "relations": {
+    "User": {
+      "type": "belongsTo",
+      "model": "users",
+      "foreignKey": "userId"
+    }
+  },
+  "acls": [],
+  "methods": {}
+}

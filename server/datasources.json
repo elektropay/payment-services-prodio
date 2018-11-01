@@ -3,10 +3,11 @@
     "host": "localhost",
     "port": 27017,
     "url": false,
-    "database": "payments",
+    "database": "ezpaydental",
     "password": "",
     "name": "db",
     "user": "",
-    "connector": "mongodb"
+    "connector": "mongodb",
+    "useNewUrlParser": true
   }
 }
