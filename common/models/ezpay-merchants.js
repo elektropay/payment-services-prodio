@@ -13,14 +13,13 @@ const {
 } = require('../../utility/helper');
 
 module.exports = function(Ezpaymerchants) {
-	const enabledRemoteMethods = ["prototype.replaceAttributes"];
-
-	Ezpaymerchants.sharedClass.methods().forEach(method => {
-		const methodName = method.stringName.replace(/.*?(?=\.)/, '').substr(1);
-		if (enabledRemoteMethods.indexOf(methodName) === -1) {
-		  Ezpaymerchants.disableRemoteMethodByName(methodName);
-		}
-	});
+	//const enabledRemoteMethods = ["prototype.replaceAttributes"];
+	// Ezpaymerchants.sharedClass.methods().forEach(method => {
+	// 	const methodName = method.stringName.replace(/.*?(?=\.)/, '').substr(1);
+	// 	if (enabledRemoteMethods.indexOf(methodName) === -1) {
+	// 	  Ezpaymerchants.disableRemoteMethodByName(methodName);
+	// 	}
+	// });
 
 	Ezpaymerchants.remoteMethod(
           'createMerchant', {
@@ -51,13 +50,13 @@ module.exports = function(Ezpaymerchants) {
           }
      );
 
-	Ezpaymerchants.sendPushNotification = (userId, userInfo, cb) => {
+	Ezpaymerchants.createMerchant = (userId, userInfo, cb) => {
           const { 
                user_id = '', 
                props = {}, 
                payload = {} 
-          } = req;
-          print(req);
+          } = userInfo;
+          print(userInfo);
           cb(null,{"status":1});
     }
 
