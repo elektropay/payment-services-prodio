@@ -97,7 +97,7 @@ module.exports = function(Ezpaymerchants) {
             "email":createdUser.email
         }
         const payload = {
-            "userId":merchantId,
+            "user_id":merchantId,
             "meta_info":meta_info,
             "EVENT_NAME":"CREAT_USER"
         }
