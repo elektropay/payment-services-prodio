@@ -13,6 +13,12 @@ const {
 } = require('../../utility/helper');
 let async = require('async');
 
+const notificationSdk = require('notification-service-sdk-prodio');
+let payload = {};
+let url = "";
+const notificationApi  = new notificationSdk(payload,url);
+
+
 module.exports = function(Ezpaymerchants) {
 
 	Ezpaymerchants.remoteMethod(
@@ -47,6 +53,7 @@ module.exports = function(Ezpaymerchants) {
 	Ezpaymerchants.createMerchant = (userId, userInfo, cb) => {
           const { 
                user_id = '', 
+               basic = {},
                payees = {}, 
                billing = {} 
           } = userInfo;
@@ -62,6 +69,7 @@ module.exports = function(Ezpaymerchants) {
                		let saveMerchant = {
                			"userId": userId,
                			"paymentGateway":"CAYAN",
+               			"userInfo": userInfo,
                			"isActive": true,
                			"createdAt": new Date(),
                			"updatedAt": new Date()
@@ -69,6 +77,7 @@ module.exports = function(Ezpaymerchants) {
                		 
                		Ezpaymerchants.create(saveMerchant).then(merchantObj => {
                			funAddUpdatePayees(payees,merchantObj["id"]);
+               			funSendWelcomeEmail(merchantObj["id"],basic);
                			return cb(null, merchantObj);
                     }).catch(error => {
                           print(error);
@@ -80,6 +89,21 @@ module.exports = function(Ezpaymerchants) {
                print(error);
                return cb(new HttpErrors.InternalServerError('Db connection failed', { expose: false }));
           });
+    }
+
+    function funSendWelcomeEmail(merchantId,createdUser){
+    	const meta_info = {
+            "name":createdUser.firstName+" "+createdUser.lastName,
+            "email":createdUser.email
+        }
+        const payload = {
+            "userId":merchantId,
+            "meta_info":meta_info,
+            "EVENT_NAME":"CREAT_USER"
+        }
+        const baseUrl = `https://47ha2doy85.execute-api.us-east-1.amazonaws.com/dev/`;
+
+        let createdUserData = notificationApi.createUser(payload,baseUrl);
     }
 
     function funAddUpdatePayees(payees,merchantId){
