@@ -1,0 +1,46 @@
+{
+  "_meta": {
+    "sources": [
+      "loopback/common/models",
+      "loopback/server/models",
+      "../common/models",
+      "./models"
+    ],
+    "mixins": [
+      "loopback/common/mixins",
+      "loopback/server/mixins",
+      "../common/mixins",
+      "./mixins"
+    ]
+  },
+  "ACL": {
+    "dataSource": "db",
+    "public": false
+  },
+  "savedCardsMetaData": {
+    "dataSource": "db",
+    "public": true
+  },
+  "ezpayMerchants": {
+    "dataSource": "db",
+    "public": true,
+    "options": {
+      "remoting": {
+        "sharedMethods": {
+          "*": false,
+          "createMerchant": true,
+          "getPayeesListing": true,
+          "removeById": true
+        }
+      }
+    }
+  },
+  "ezpayPayees": {
+    "dataSource": "db",
+    "public": true
+  },
+  "ezpayPaymentTransactions": {
+    "dataSource": "db",
+    "public": true
+  }
+}

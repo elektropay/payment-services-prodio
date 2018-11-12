@@ -1,0 +1,39 @@
+{
+  "name": "ezpayMerchants",
+  "plural": "ezpayMerchants",
+  "base": "PersistedModel",
+  "idInjection": true,
+  "options": {
+    "validateUpsert": true
+  },
+  "properties": {
+    "merchantId": {
+      "id": true,
+      "type": "string",
+      "defaultFn": "uuidv4"
+    },
+    "userId": {
+      "type": "string"
+    },
+    "paymentGateway": {
+      "type": "string"
+    },
+    "planName": {
+      "type": "string"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": false
+    },
+    "createdAt": {
+      "type": "date"
+    },
+    "updatedAt": {
+      "type": "date"
+    }
+  },
+  "validations": [],
+  "relations": {},
+  "acls": [],
+  "methods": {}
+}

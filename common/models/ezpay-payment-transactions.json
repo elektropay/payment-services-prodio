@@ -1,0 +1,27 @@
+{
+  "name": "ezpayPaymentTransactions",
+  "plural": "ezpayPaymentTransactions",
+  "base": "PersistedModel",
+  "idInjection": true,
+  "options": {
+    "validateUpsert": true
+  },
+  "properties": {
+    "payeeId": {
+      "type": "string"
+    },
+    "merchantId": {
+      "type": "string"
+    },
+    "transactionStatus": {
+      "type": "string"
+    },
+    "createdAt": {
+      "type": "string"
+    }
+  },
+  "validations": [],
+  "relations": {},
+  "acls": [],
+  "methods": {}
+}

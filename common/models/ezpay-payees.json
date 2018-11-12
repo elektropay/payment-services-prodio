@@ -1,0 +1,56 @@
+{
+  "name": "ezpayPayees",
+  "plural": "ezpayPayees",
+  "base": "PersistedModel",
+  "idInjection": true,
+  "options": {
+    "validateUpsert": true
+  },
+  "properties": {
+    "payeeId": {
+      "id": true,
+      "type": "string",
+      "defaultFn": "uuidv4"
+    },
+    "firstName": {
+      "type": "string"
+    },
+    "lastName": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "mobileNumber": {
+      "type": "string"
+    },
+    "merchantId": {
+      "type": "string"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    },
+    "createdAt": {
+      "type": "date"
+    },
+    "updatedAt": {
+      "type": "date"
+    }
+  },
+  "validations": [],
+  "relations": {
+    "Merchant": {
+      "type": "belongsTo",
+      "model": "ezpayMerchants",
+      "property": "merchantId",
+      "options": {
+        "validate": true,
+        "persistent": true,
+        "nestRemoting": false
+      }
+    }
+  },
+  "acls": [],
+  "methods": {}
+}

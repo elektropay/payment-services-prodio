@@ -1,0 +1,105 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  animation: App-logo-spin infinite 20s linear;
+  height: 40vmin;
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+  html, #app, .home {
+    height: 100%;
+  }
+  body {
+    background-color: #F4F4F4;
+    margin: 0;
+    height: 100%;
+  }
+  .hello {
+    display: grid;
+    grid-template-columns: repeat(2, 50%);
+    grid-template-rows: 100%;
+    grid-template-areas:
+      "left right";
+    height: 100%;
+  }
+  .left, .right {
+    padding: 30px;
+  }
+  ul {
+    list-style-type: none;
+    padding: 0;
+  }
+  ul li {
+    padding: 20px;
+    background: white;
+    margin-bottom: 8px;
+  }
+  .right {
+    grid-area: right;
+    background-color: #E9E9E9;
+  }
+  input {
+    border: none;
+    padding: 20px;
+    width: calc(100% - 40px);
+    box-shadow: 0 5px 5px lightgrey;
+    margin-bottom: 50px;
+    outline: none;
+  }
+  .rm {
+    float: right;
+    text-transform: uppercase;
+    font-size: .8em;
+    background: #f9d0e3;
+    border: none;
+    padding: 5px;
+    color: #ff0076;
+    cursor:pointer;
+  }
+  .rm-edit {
+    float: right;
+    text-transform: uppercase;
+    font-size: .8em;
+    background: #d0def9;
+    border: none;
+    padding: 5px;
+    color: #008cff;
+    cursor:pointer;
+    margin-left: 1px;
+  }
+  .btn-btnsave{
+    background: #008cff;
+    color: #F4F4F4;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  .btn-btnsave:hover{
+    background: #F4F4F4;
+    color: #008cff;
+  }
+  

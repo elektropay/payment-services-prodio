@@ -11,43 +11,40 @@ We believe that payments is a problem rooted in code, not finance. We obsessivel
 
 # Features
 
-* Merchant Registration
-	* The subscriber is able to signup as merchant to any given provider.
+* Merchant 
+	* Create Merchant
+	* Get Merchant Activation Status
+	* Get Merchant Profile
+	* DeActivate Merchant
+	* Remove Merchant
 
-* Quick Payments
-	* Create Customer in respective provider.
-	* Save Card Info (If opted, as per PCI Compliance)
-	* Create Payment Transaction
-	* Send Email If payment is failed/passed.
-	* Save Customer Reference id and transaction Reference id into our database.
+* Payees (Customers)
+	* Add Payee
+	* Edit Payee
+	* Remove Payee(s)
+	* Import Payees
 
-* Multi-tenant support.
-	* Ability to create multiple sub-sites within single Merchant Account.
+* Cards
+	* Add Card for Payee
+	* Remove Card from Payee
 
-* Batch Payments
-	* Perform batch payments for multiple customer with excel upload etc. (If provider has support for this)
+* Payment Transaction
+	* Process Payment
+	* Get Payment Transactions (filter by mechant, payee, date, keyword etc.)
 
-* Subscriptions
-	* Auto Recurring payments as per subscription types.
+* Recurring Billing
+	* Add Recurring Transaction
+	* Edit Recurring Transaction
+	* Remove Recurring Transaction
 
-* Payment Transaction Logs.
-	* Filter by date, customer, amount, card type etc.
+* Invoice
+	* Create Invoice
+	* Send Invoice
 
-* Payment Invoices.
-	* It will create payment invoices and send them over emails. And also save them in pdf format over secure cloud for later use.
+* Refund
+	* Process Refund for Transaction
 
-* Multiple Currency Support
-	* Currently it only takes payments in USD.
-
-* Refunds.
-	* Ability to perform refund from respective provider based on the transaction reference id.
-
-* Gift Cards.
-	* The Gift Card services provide payment and loyalty operations for gift cards.
-
-* Reports.
-
-* Email Support.
+* Reports/Stats
 
 * WebHooks.
  
@@ -62,8 +59,8 @@ We believe that payments is a problem rooted in code, not finance. We obsessivel
 2. Navigate to your repo `cd payment-services-prodio`
 3. Install dependencies `npm install`
 4. Start service `node .` or `npm start` or `node server/server.js`
-5. Open `http://localhost:3000/explorer/` in your browser
-5. If you've pm2 installed then use this `pm2 start server/server.js --name="PAYMENT_SERVICE"`
+5. Open `http://localhost:3010/explorer/` in your browser (Note: The port 3010 should be allowed in server firewall OR In the AWS Security Groups)
+6. If you've pm2 installed then use this `pm2 start server/server.js --name="PAYMENT_SERVICE"`
 #### NOTE: 
 `payment-services-prodio` uses loopback as the core framework for developing API's, so all customisations, configurations, middlewares, events, and db connectors can be used which you would have used in loopback. 
 
