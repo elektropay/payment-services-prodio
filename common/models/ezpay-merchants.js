@@ -28,21 +28,10 @@ module.exports = function(Ezpaymerchants) {
                     verb: 'post'
                },
                description: ["It will register the subscriber as merchant into payment gateway."],
-               accepts: [{
-                    arg: 'userId',
-                    type: 'string',
-                    required: true,
-                    http: {
-                         source: 'path'
-                    }
-               },{
-                    arg: 'userInfo',
-                    type: 'object',
-                    required: true,
-                    http: {
-                         source: 'body'
-                    }
-               }],
+               accepts: [
+               	{arg: 'userId',type: 'string',required: true,http: { source: 'path'}},
+               	{ arg: 'userInfo',type: 'object', required: true, http: { source: 'body' }}
+               ],
                returns: {
                     type: 'object',
                     root: true
@@ -183,5 +172,68 @@ module.exports = function(Ezpaymerchants) {
             return cb(new HttpErrors.InternalServerError('Db connection failed', { expose: false }));
         });
     }
+
+
+    Ezpaymerchants.remoteMethod(
+          'GetMerchantActivationStatus', {
+               http: { verb: 'post' },
+               description: ["It will return the merchant activation status as per payment gateway."],
+               accepts: [
+               	{arg: 'merchantId',type: 'string',required: true},
+               ],
+               returns: { type: 'object', root: true }
+          }
+     );
+
+	Ezpaymerchants.GetMerchantActivationStatus = (merchantId, cb) => {
+		return cb(null, {"succes":true});
+	}
+
+	Ezpaymerchants.remoteMethod(
+          'GetMerchantProfile', {
+               http: { verb: 'post' },
+               description: ["It will return merchant basic details"],
+               accepts: [
+               	{arg: 'merchantId',type: 'string',required: true},
+               ],
+               returns: { type: 'object', root: true }
+          }
+     );
+
+	Ezpaymerchants.GetMerchantProfile = (merchantId, cb) => {
+		return cb(null, {"succes":true});
+	}
+
+	Ezpaymerchants.remoteMethod(
+          'DeactivateMerchant', {
+               http: { verb: 'post' },
+               description: ["It will deactivate the given merchant account."],
+               accepts: [
+               	{arg: 'merchantId',type: 'string',required: true},
+               ],
+               returns: { type: 'object', root: true }
+          }
+     );
+
+	Ezpaymerchants.DeactivateMerchant = (merchantId, cb) => {
+		return cb(null, {"succes":true});
+	}
+
+
+	Ezpaymerchants.remoteMethod(
+          'RemoveMerchant', {
+               http: { verb: 'post' },
+               description: ["It will remove the given merchant account from payment gateway."],
+               accepts: [
+               	{arg: 'merchantId',type: 'string',required: true},
+               ],
+               returns: { type: 'object', root: true }
+          }
+     );
+
+	Ezpaymerchants.RemoveMerchant = (merchantId, cb) => {
+		return cb(null, {"succes":true});
+	}
+
 
 };

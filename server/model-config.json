@@ -30,14 +30,31 @@
           "*": false,
           "createMerchant": true,
           "getPayeesListing": true,
-          "removeById": true
+          "removeById": true,
+          "RemoveMerchant":true,
+          "DeactivateMerchant":true,
+          "GetMerchantProfile":true,
+          "GetMerchantActivationStatus":true
         }
       }
     }
   },
   "ezpayPayees": {
     "dataSource": "db",
-    "public": true
+    "public": true,
+    "options": {
+      "remoting": {
+        "sharedMethods": {
+          "*": false,
+          "addPayee": true,
+          "editPayee": true,
+          "removePayees": true,
+          "importPayees":true,
+          "addCardForPayee":true,
+          "removeCard":true
+        }
+      }
+    }
   },
   "ezpayPaymentTransactions": {
     "dataSource": "db",
