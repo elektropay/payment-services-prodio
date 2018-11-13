@@ -108,6 +108,8 @@ module.exports = function(Ezpaymerchants) {
                     "lastName": isValid(payeeInfo["lastName"]) ? payeeInfo["lastName"] : "",
                     "email": isValid(payeeInfo["email"]) ? String(payeeInfo["email"]).toLowerCase() : "",
                     "mobileNumber": isValid(payeeInfo["mobileNumber"]) ? payeeInfo["mobileNumber"] : "",
+                    "address": isValid(payeeInfo["address"]) ? payeeInfo["address"] : "",
+                    "paymentMethod": isValid(payeeInfo["paymentMethod"]) ? payeeInfo["paymentMethod"] : "",
                     "merchantId": merchantId,
                     "isActive": true,
                     "createdAt": new Date(),

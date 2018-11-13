@@ -24,6 +24,12 @@
     "mobileNumber": {
       "type": "string"
     },
+    "address": {
+      "type": "string"
+    },
+    "paymentMethod": {
+      "type": "string"
+    },
     "merchantId": {
       "type": "string"
     },
