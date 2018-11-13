@@ -25,6 +25,14 @@
       "type": "boolean",
       "default": false
     },
+    "isDeleted": {
+      "type": "boolean",
+      "default": false
+    },
+    "isApprovedByGateway": {
+      "type": "boolean",
+      "default": false
+    },
     "createdAt": {
       "type": "date"
     },

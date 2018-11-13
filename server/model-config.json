@@ -31,10 +31,10 @@
           "createMerchant": true,
           "getPayeesListing": true,
           "removeById": true,
-          "RemoveMerchant":true,
-          "DeactivateMerchant":true,
-          "GetMerchantProfile":true,
-          "GetMerchantActivationStatus":true
+          "removeMerchant":true,
+          "deactivateMerchant":true,
+          "getMerchantProfile":true,
+          "getMerchantActivationStatus":true
         }
       }
     }
