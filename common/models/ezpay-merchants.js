@@ -29,7 +29,7 @@ module.exports = function(Ezpaymerchants) {
                     type: 'string',
                     required: true,
                     http: {
-                        source: 'path'
+                        source: 'query'
                     }
                 },
                 {
@@ -49,13 +49,14 @@ module.exports = function(Ezpaymerchants) {
     );
 
     Ezpaymerchants.createMerchant = (userId, userInfo, cb) => {
+        print("1321222");
         const {
-            user_id = '',
                 basic = {},
+                business = {},
                 payees = {},
                 billing = {}
         } = userInfo;
-        print(payees);
+        print("23123412");
         //TODO : Integrating actual Payment Gateway API
 
         Ezpaymerchants.findOne({
@@ -73,7 +74,9 @@ module.exports = function(Ezpaymerchants) {
                 let saveMerchant = {
                     "userId": userId,
                     "paymentGateway": "INTEGRITY",
-                    "userInfo": userInfo,
+                    "userInfo": basic,
+                    "businessInfo": business,
+                    "billingInfo": billing,
                     "isActive": true,
                     "isApprovedByGateway":false,
                     "isDeleted": false,
@@ -110,7 +113,6 @@ module.exports = function(Ezpaymerchants) {
                     "mobileNumber": isValid(payeeInfo["mobileNumber"]) ? payeeInfo["mobileNumber"] : "",
                     "address": isValid(payeeInfo["address"]) ? payeeInfo["address"] : "",
                     "paymentMethod": isValid(payeeInfo["paymentMethod"]) ? payeeInfo["paymentMethod"] : "",
-                    "merchantId": merchantId,
                     "isActive": true,
                     "createdAt": new Date(),
                     "updatedAt": new Date()
@@ -123,10 +125,12 @@ module.exports = function(Ezpaymerchants) {
                 }).then(payeeData => {
                     if (isValidObject(payeeData)) {
                         clb();
+                        funCreateMerchantPayeeRelation(merchantId,payeeData["id"]);
                         //return cb(new HttpErrors.NotFound('user already exist', { expose: false }));
                     } else {
                         Ezpaymerchants.app.models.ezpayPayees.create(savePayee).then(payeeObj => {
                             //return cb(null, merchantObj);
+                            funCreateMerchantPayeeRelation(merchantId,payeeObj["id"]);
                             clb();
                         }).catch(error => {
                             print(error);
@@ -148,20 +152,49 @@ module.exports = function(Ezpaymerchants) {
     }
 
 
+    function funCreateMerchantPayeeRelation(merchantId,payeeId){
+        Ezpaymerchants.app.models.merchantPayeesRelation.findOne({
+              where: {
+                  "merchantId": merchantId,"payeeId": payeeId
+              }
+          }).then(payeeData => {
+              if (isValidObject(payeeData)) {
+
+              }else{
+
+                let savePayee = {
+                    "merchantId": merchantId,
+                    "payeeId":payeeId,
+                    "isActive":true,
+                    "createdAt": new Date(),
+                };
+
+                Ezpaymerchants.app.models.merchantPayeesRelation.create(savePayee).then(payeeObj => {
+                    //return cb(null, merchantObj);
+                }).catch(error => {
+                    print(error);
+                    //return cb(new HttpErrors.InternalServerError('Db connection failed', { expose: false }));
+                });
+
+              }
+          }).catch(error => {
+              clb();
+              print(error);
+              //return cb(new HttpErrors.InternalServerError('Db connection failed', { expose: false }));
+          });
+    }
+
+
     Ezpaymerchants.remoteMethod(
         'getPayeesListing', {
             http: {
-                path: '/getPayees/:merchantId',
                 verb: 'post'
             },
             description: ["It will return the list of payees added by the merchant."],
             accepts: [{
                 arg: 'merchantId',
                 type: 'string',
-                required: true,
-                http: {
-                    source: 'path'
-                }
+                required: true
             }],
             returns: {
                 type: 'array',
@@ -172,12 +205,11 @@ module.exports = function(Ezpaymerchants) {
 
 
     Ezpaymerchants.getPayeesListing = (merchantId, cb) => {
-        Ezpaymerchants.app.models.ezpayPayees.find({
-            where: {
-                "merchantId": merchantId
-            }
+        Ezpaymerchants.app.models.merchantPayeesRelation.find({
+           include:[{relation:'Payee'}],
+            where: {"merchantId": merchantId,"isActive":true},
         }).then(payees => {
-            print(payees);
+            //print(payees);
             if (isValidObject(payees)) {
                 return cb(null, payees);
             } else {

@@ -8,8 +8,8 @@
   },
   "properties": {
     "merchantId": {
-      "id": true,
       "type": "string",
+      "id": true,
       "defaultFn": "uuidv4"
     },
     "userId": {

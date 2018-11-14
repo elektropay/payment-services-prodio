@@ -1,0 +1,44 @@
+{
+  "name": "merchantPayeesRelation",
+  "plural": "merchantPayeesRelation",
+  "base": "PersistedModel",
+  "idInjection": true,
+  "options": {
+    "validateUpsert": true
+  },
+  "properties": {
+    "merchantId": {
+      "type": "string"
+    },
+    "payeeId": {
+      "type": "string"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    },
+    "createdAt": {
+      "type": "date"
+    }
+  },
+  "validations": [],
+  "relations": {
+    "Merchant": {
+      "type": "belongsTo",
+      "model": "ezpayMerchants",
+      "property": "merchantId",
+      "options": {
+        "validate": true,
+        "persistent": true,
+        "nestRemoting": false
+      }
+    },
+    "Payee": {
+      "type": "belongsTo",
+      "model": "ezpayPayees",
+      "property": "payeeId"
+    }
+  },
+  "acls": [],
+  "methods": {}
+}

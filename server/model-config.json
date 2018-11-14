@@ -31,10 +31,10 @@
           "createMerchant": true,
           "getPayeesListing": true,
           "removeById": true,
-          "removeMerchant":true,
-          "deactivateMerchant":true,
-          "getMerchantProfile":true,
-          "getMerchantActivationStatus":true
+          "removeMerchant": true,
+          "deactivateMerchant": true,
+          "getMerchantProfile": true,
+          "getMerchantActivationStatus": true
         }
       }
     }
@@ -49,14 +49,18 @@
           "addPayee": true,
           "editPayee": true,
           "removePayees": true,
-          "importPayees":true,
-          "addCardForPayee":true,
-          "removeCard":true
+          "importPayees": true,
+          "addCardForPayee": true,
+          "removeCard": true
         }
       }
     }
   },
   "ezpayPaymentTransactions": {
+    "dataSource": "db",
+    "public": true
+  },
+  "merchantPayeesRelation": {
     "dataSource": "db",
     "public": true
   }
