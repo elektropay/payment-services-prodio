@@ -1,4 +1,16 @@
 'use strict';
+const HttpErrors = require('http-errors');
+const {
+    findReplace,
+    unique,
+    isValidObject,
+    isValid,
+    flattenArray,
+    clean,
+    isArray,
+    isObject,
+    print,
+} = require('../../utility/helper');
 
 module.exports = function(Ezpaypayees) {
 
@@ -7,7 +19,7 @@ module.exports = function(Ezpaypayees) {
                http: { verb: 'post' },
                description: ["Add Payee"],
                accepts: [
-               	{arg: 'merchantId',type: 'string',required: true},
+               	{ arg: 'merchantId',type: 'string',required: true},
                	{ arg: 'payeeInfo',type: 'object', required: true, http: { source: 'body' }}
                ],
                returns: { type: 'object', root: true }
@@ -15,15 +27,94 @@ module.exports = function(Ezpaypayees) {
      );
 
 	Ezpaypayees.addPayee = (merchantId,payeeInfo, cb) => {
-		return cb(null, {"succes":true});
+          Ezpaypayees.app.models.ezpayMerchants.findById(merchantId,function(err,merchantInfo){
+               if(err){
+                    cb(new HttpErrors.InternalServerError('Query Error.', {expose: false }));
+               }else{
+                    if (isValidObject(merchantInfo)) {
+                       Ezpaypayees.findOne({"where":{"email":payeeInfo["email"]}},function(err,payeeData){
+                         if(err){
+                              cb(new HttpErrors.InternalServerError('Query Error', {expose: false}));
+                         }else{
+                             if (isValidObject(payeeData)) {
+                                   funCreateMerchantPayeeRelation(merchantId,payeeData["payeeId"],cb);
+                             }else{
+                                   Ezpaypayees.findOne({"where":{"mobileNumber":payeeInfo["mobileNumber"]}},function(err,payeeData){
+                                        if(err){
+                                             cb(new HttpErrors.InternalServerError('Query Error', {expose: false}));
+                                        }else{
+                                             if (isValidObject(payeeData)) {
+                                                  funCreateMerchantPayeeRelation(merchantId,payeeData["payeeId"],cb);
+                                             }else{
+                                                  let savePayee = {
+                                                       "firstName": isValid(payeeInfo["firstName"]) ? payeeInfo["firstName"] : "",
+                                                       "lastName": isValid(payeeInfo["lastName"]) ? payeeInfo["lastName"] : "",
+                                                       "email": isValid(payeeInfo["email"]) ? String(payeeInfo["email"]).toLowerCase() : "",
+                                                       "mobileNumber": isValid(payeeInfo["mobileNumber"]) ? payeeInfo["mobileNumber"] : "",
+                                                       "address": isValid(payeeInfo["address"]) ? payeeInfo["address"] : "",
+                                                       "paymentMethod": isValid(payeeInfo["paymentMethod"]) ? payeeInfo["paymentMethod"] : "",
+                                                       "isActive": true,
+                                                       "createdAt": new Date(),
+                                                       "updatedAt": new Date()
+                                                   };
+
+                                                  Ezpaypayees.create(savePayee).then(payeeObj => {
+                                                       cb(null,{"success":true,"isAlreadyExists":false});
+                                                  }).catch(error => {
+                                                       cb(new HttpErrors.InternalServerError('Error while creating new payee.', { expose: false }));
+                                                  });
+                                             }
+                                        }
+                                   });
+                             }
+                         }
+                       })  
+                    }else{
+                         cb(new HttpErrors.NotFound('Merchant Not Found!!', { expose: false }));
+                    }
+               }
+          });
 	}
+
+     function funCreateMerchantPayeeRelation(merchantId,payeeId,cb){
+        Ezpaypayees.app.models.merchantPayeesRelation.findOne({
+              where: {
+                  "merchantId": merchantId,"payeeId": payeeId
+              }
+          }).then(payeeData => {
+              if (isValidObject(payeeData)) {
+                    cb(null,{"success":true,"isAlreadyExists":true});
+              }else{
+
+                let savePayee = {
+                    "merchantId": merchantId,
+                    "payeeId":payeeId,
+                    "isActive":true,
+                    "createdAt": new Date(),
+                };
+
+                Ezpaymerchants.app.models.merchantPayeesRelation.create(savePayee).then(payeeObj => {
+                    //return cb(null, merchantObj);
+                    cb(null,{"success":true,"isAlreadyExists":true});
+                }).catch(error => {
+                    print(error);
+                    cb(new HttpErrors.InternalServerError('Server Error While Adding Payee.', { expose: false }));
+                });
+
+              }
+          }).catch(error => {
+              print(error);
+              cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
+          });
+    }
+
 
 	Ezpaypayees.remoteMethod(
           'editPayee', {
                http: { verb: 'post' },
                description: ["Add Payee"],
                accepts: [
-               	{arg: 'payeeId',type: 'string',required: true},
+               	{ arg: 'payeeId',type: 'string',required: true},
                	{ arg: 'payeeInfo',type: 'object', required: true, http: { source: 'body' }}
                ],
                returns: { type: 'object', root: true }
@@ -31,7 +122,31 @@ module.exports = function(Ezpaypayees) {
      );
 
 	Ezpaypayees.editPayee = (payeeId,payeeInfo, cb) => {
-		return cb(null, {"succes":true});
+
+          Ezpaypayees.findById(payeeId).then(payeeObj => {
+               if(isValidObject(payeeObj)){
+                    let payeeJson = {
+                         "firstName": isValid(payeeInfo["firstName"]) ? payeeInfo["firstName"] : "",
+                         "lastName": isValid(payeeInfo["lastName"]) ? payeeInfo["lastName"] : "",
+                         "email": isValid(payeeInfo["email"]) ? String(payeeInfo["email"]).toLowerCase() : "",
+                         "mobileNumber": isValid(payeeInfo["mobileNumber"]) ? payeeInfo["mobileNumber"] : "",
+                         "address": isValid(payeeInfo["address"]) ? payeeInfo["address"] : "",
+                         "paymentMethod": isValid(payeeInfo["paymentMethod"]) ? payeeInfo["paymentMethod"] : "",
+                         "updatedAt": new Date()
+                     };
+                    payeeObj.updateAttributes(payeeJson).then(updatedPayeeInfo => {
+                         cb(null,{"success":true});
+                    }).catch(error =>{
+                         cb(new HttpErrors.InternalServerError('Server Error, '+JSON.stringify(error), { expose: false }));
+                    })
+
+               }else{
+                   cb(new HttpErrors.InternalServerError('Invalid Payee Id.', {expose: false})); 
+               }
+          }).catch(error => {
+              print(error);
+              cb(new HttpErrors.InternalServerError('Server Error, '+JSON.stringify(error), { expose: false }));
+          });
 	}
 
 	Ezpaypayees.remoteMethod(
@@ -39,14 +154,20 @@ module.exports = function(Ezpaypayees) {
                http: { verb: 'post' },
                description: ["Add Payee"],
                accepts: [
-               	{arg: 'payeeIds',type: 'string',required: true},
+               	{arg: 'payeeIds',type: 'array',description:"comma seperated array like 1234,84356,3533",required: true},
                ],
                returns: { type: 'object', root: true }
           }
      );
 
-	Ezpaypayees.removePayees = (payeeId,payeeInfo, cb) => {
-		return cb(null, {"succes":true});
+	Ezpaypayees.removePayees = (payeeIds, cb) => {
+          let payeeIds = String(payeeIds).split(",");
+
+          Ezpaypayees.updateAll({"in":payeeIds},{"isActive":false}).then(res=>{
+               cb(null,{"success":true});
+          }).catch(error=>{
+               cb(new HttpErrors.InternalServerError('Server Error, '+JSON.stringify(error), { expose: false }));
+          })
 	}
 
 	Ezpaypayees.remoteMethod(

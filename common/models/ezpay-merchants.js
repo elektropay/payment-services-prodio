@@ -49,14 +49,14 @@ module.exports = function(Ezpaymerchants) {
     );
 
     Ezpaymerchants.createMerchant = (userId, userInfo, cb) => {
-        print("1321222");
+        //print("1321222");
         const {
                 basic = {},
                 business = {},
                 payees = {},
                 billing = {}
         } = userInfo;
-        print("23123412");
+        //print("23123412");
         //TODO : Integrating actual Payment Gateway API
 
         Ezpaymerchants.findOne({
@@ -66,7 +66,7 @@ module.exports = function(Ezpaymerchants) {
         }).then(user => {
 
             if (isValidObject(user)) {
-                funAddUpdatePayees(payees, user["id"]);
+                funAddUpdatePayees(payees, user["merchantId"]);
                 return cb(new HttpErrors.NotFound('user already exist', {
                     expose: false
                 }));
@@ -125,12 +125,12 @@ module.exports = function(Ezpaymerchants) {
                 }).then(payeeData => {
                     if (isValidObject(payeeData)) {
                         clb();
-                        funCreateMerchantPayeeRelation(merchantId,payeeData["id"]);
+                        funCreateMerchantPayeeRelation(merchantId,payeeData["payeeId"]);
                         //return cb(new HttpErrors.NotFound('user already exist', { expose: false }));
                     } else {
                         Ezpaymerchants.app.models.ezpayPayees.create(savePayee).then(payeeObj => {
                             //return cb(null, merchantObj);
-                            funCreateMerchantPayeeRelation(merchantId,payeeObj["id"]);
+                            funCreateMerchantPayeeRelation(merchantId,payeeObj["payeeId"]);
                             clb();
                         }).catch(error => {
                             print(error);
