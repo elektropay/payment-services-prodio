@@ -199,7 +199,50 @@ module.exports = function(Ezpaypayees) {
      );
 
 	Ezpaypayees.addCardForPayee = (payeeId,cardInfo, cb) => {
-		return cb(null, {"succes":true});
+          // let cardInfo = {
+          //      "cardNumber":"",
+          //      "cardHolderName":"",
+          //      "expDate":"",
+          //      "cvv":"",
+          //      "cardType":""
+          // }
+          Ezpaypayees.findById(payeeId).then(payeeObj=>{
+               if(isValidObject(payeeObj)){
+                    let filterObj = {"where":{"payeeId":payeeId,"cardType": cardInfo["cardType"],"cardNumberAlias": cardInfo["cardNumber"] }};
+
+                    Ezpaypayees.app.models.savedCardsMetaData.findOne(filterObj).then(cardData=>{
+                         if(isValidObject(cardData)){
+                              //already exists
+                              cb(null,{"success":true,"cardId": cardData["cardId"],"isNewCard":false });
+                         }else{
+                              //create new
+                              let cardInfo = {
+                                   "payeeId": payeeId ,
+                                   "cardHolderName": cardInfo["cardHolderName"],
+                                   "cardNumberAlias": cardInfo["cardNumber"] ,
+                                   "expiryDate": cardInfo["expDate"],
+                                   "cardType": cardInfo["cardType"],
+                                   "cardRefId":"",
+                                   "isActive":true,
+                                   "savedAt": new Date()
+                              };
+
+                              Ezpaypayees.app.models.savedCardsMetaData.create(cardInfo).then(cardInformation=>{
+                                   cb(null,{"success":true,"cardId": cardInformation["cardId"],"isNewCard":true });
+                              }).catch(error=>{
+                                   cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
+                              })
+                         }
+                    }).catch(error=>{
+                         cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
+                    });
+               } else {
+                    //invalid payee
+                    cb(new HttpErrors.InternalServerError('Invalid Payee ID.', { expose: false }));
+               }
+          }).catch(error=>{
+               cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
+          });
 	}
 
 	Ezpaypayees.remoteMethod(
@@ -215,7 +258,57 @@ module.exports = function(Ezpaypayees) {
      );
 
 	Ezpaypayees.removeCard = (payeeId,cardId, cb) => {
-		return cb(null, {"succes":true});
+          Ezpaypayees.findById(payeeId).then(payeeInfo=>{
+               if(isValidObject(payeeInfo)){
+                    Ezpaypayees.app.models.savedCardsMetaData.findById(cardId).then(cardInfo=>{
+                         if(isValidObject(cardInfo)){
+                              cardInfo.updateAttributes({"isActive":false}).then(updatedCount=>{
+                                   cb(null,{"success":true});
+                              }).catch(error=>{
+                                   cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
+                              });
+                         }else{
+                              cb(new HttpErrors.InternalServerError('Invalid Card ID.', { expose: false }));
+                         }
+                    }).catch(error=>{
+                         cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
+                    });
+               }else{
+                    cb(new HttpErrors.InternalServerError('Invalid Payee ID.', { expose: false }));
+               }
+          }).catch(error=>{
+               cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
+          });
+
 	}
+
+     Ezpaypayees.remoteMethod(
+          'getSavedCards', {
+               http: { verb: 'post' },
+               description: ["get listing to cards saved by user."],
+               accepts: [
+                    {arg: 'payeeId',type: 'string',required: true}
+               ],
+               returns: { type: 'object', root: true }
+          }
+     );
+
+     Ezpaypayees.getSavedCards = (payeeId, cb) => {
+          Ezpaymerchants.app.models.savedCardsMetaData.find({
+                include:[{relation:'Payee'}],
+                 where: {"payeeId": payeeId,"isActive":true},
+             }).then(userCards => {
+                 //print(payees);
+                 if (isValidObject(userCards)) {
+                     return cb(null, userCards);
+                 } else {
+                     return cb(null, userCards);
+                 }
+             }).catch(error => {
+                 return cb(new HttpErrors.InternalServerError('Db connection failed', {
+                     expose: false
+                 }));
+             });
+     }
 
 };

@@ -7,16 +7,24 @@
     "validateUpsert": true
   },
   "properties": {
-    "userId": {
+    "cardId": {
+      "type": "string",
+      "id": true,
+      "defaultFn": "uuidv4"
+    },
+    "payeeId": {
       "type": "string"
     },
     "cardHolderName": {
       "type": "string"
     },
-    "cardNumberLastDigits": {
+    "cardNumberAlias": {
       "type": "string"
     },
     "expiryDate": {
+      "type": "string"
+    },
+    "cardType": {
       "type": "string"
     },
     "cardRefId": {
@@ -32,10 +40,10 @@
   },
   "validations": [],
   "relations": {
-    "User": {
+    "Payee": {
       "type": "belongsTo",
       "model": "users",
-      "foreignKey": "userId"
+      "foreignKey": "payeeId"
     }
   },
   "acls": [],

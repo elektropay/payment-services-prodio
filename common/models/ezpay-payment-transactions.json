@@ -7,14 +7,29 @@
     "validateUpsert": true
   },
   "properties": {
+    "transactionId": {
+      "type": "string",
+      "id": true,
+      "defaultFn": "uuidv4"
+    },
     "payeeId": {
       "type": "string"
     },
     "merchantId": {
       "type": "string"
     },
+    "totalAmount":{
+      "type":"string"
+    },
+    "metaData":{
+      "type":"object"
+    },
     "transactionStatus": {
       "type": "string"
+    },
+    "isActive":{
+      "type":"boolean",
+      "default":true
     },
     "createdAt": {
       "type": "string"
