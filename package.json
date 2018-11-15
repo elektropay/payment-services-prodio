@@ -14,12 +14,14 @@
     "compression": "^1.0.3",
     "cors": "^2.5.2",
     "helmet": "^3.10.0",
+    "integrity-connector-prodio": "0.0.1",
     "loopback": "^3.22.0",
     "loopback-boot": "^2.6.5",
     "loopback-component-explorer": "^6.2.0",
     "loopback-connector-mongodb": "^3.8.0",
     "notification-service-sdk-prodio": "^1.0.5",
     "serve-favicon": "^2.0.1",
+    "service-adapter-prodio": "0.0.2",
     "strong-error-handler": "^3.0.0"
   },
   "devDependencies": {

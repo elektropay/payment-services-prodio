@@ -1,0 +1,22 @@
+{
+    "braintree":
+    {
+        "client_secret": "",
+        "client_id": "",
+        "merchant_id": "",
+        "user_name": "",
+        "password": "",
+        "connector": "braintree-connector-prodio",
+        "is_active": false
+    },
+    "integrity":
+    {
+        "client_secret": "",
+        "client_id": "",
+        "merchant_id": "",
+        "user_name": "",
+        "password": "",
+        "connector": "integrity-connector-prodio",
+        "is_active": true
+    }
+}
