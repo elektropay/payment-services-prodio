@@ -161,7 +161,7 @@ module.exports = function(Ezpaypayees) {
      );
 
 	Ezpaypayees.removePayees = (payeeIds, cb) => {
-          let payeeIds = String(payeeIds).split(",");
+          payeeIds = String(payeeIds).split(",");
 
           Ezpaypayees.updateAll({"in":payeeIds},{"isActive":false}).then(res=>{
                cb(null,{"success":true});

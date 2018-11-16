@@ -2,43 +2,43 @@ var soap = require('soap');
 var parseString = require('xml2js').parseString;
 
  var IntegrityCrendentials = {
-        'UserName': "kinetempapi123",
-        'Password': "EzPay123",
-        'Vendor': "75",
-        'BeginDt': "1/11/2017",
-        'EndDt': "1/11/2018",
-        'RecurringURL':'https://sandbox.ibxpays.com/vt/ws/recurring.asmx?wsdl',
-        'TransactionsURL':'https://sandbox.ibxpays.com/ws/transact.asmx?wsdl',
-        'CardSafeURL':'https://sandbox.ibxpays.com/ws/cardsafe.asmx?wsdl',
-        'CustomFieldsURL':'https://sandbox.ibxpays.com/ws/customfields.asmx?wsdl',
-        'TransactionDetailsURL':'https://sandbox.ibxpays.com/vt/ws/trxdetail.asmx?wsdl'
-    }
+    'UserName': "kinetempapi123",
+    'Password': "EzPay123",
+    'Vendor': "75",
+    'BeginDt': "1/11/2017",
+    'EndDt': "1/11/2018",
+    'RecurringURL':'https://sandbox.ibxpays.com/vt/ws/recurring.asmx?wsdl',
+    'TransactionsURL':'https://sandbox.ibxpays.com/ws/transact.asmx?wsdl',
+    'CardSafeURL':'https://sandbox.ibxpays.com/ws/cardsafe.asmx?wsdl',
+    'CustomFieldsURL':'https://sandbox.ibxpays.com/ws/customfields.asmx?wsdl',
+    'TransactionDetailsURL':'https://sandbox.ibxpays.com/vt/ws/trxdetail.asmx?wsdl',
+}
 
-    var soap_client_options = {};
+var soap_client_options = {};
 
-    var CardTrxSummaryParameters =   {
-     'UserName': IntegrityCrendentials["UserName"],
-     'Password': IntegrityCrendentials["Password"],
-     'RPNum': IntegrityCrendentials["Vendor"],
-     'BeginDt': IntegrityCrendentials["BeginDt"],
-     'EndDt': IntegrityCrendentials["EndDt"],
-     'ApprovalCode': "",
-     'Register': "",
-     'NameOnCard': "",
-     'CardNum': "",
-     'CardType': "",
-     'ExcludeVoid': "true",
-     'User': "",
-     'SettleFlag': "",
-     'SettleMsg': "",
-     'SettleDt': "",
-     'TransformType': "",
-     'Xsl': "",
-     'ColDelim': "",
-     'RowDelim': "",
-     'IncludeHeader': "true",
-     'ExtData': ""
-    };
+var CardTrxSummaryParameters =   {
+ 'UserName': IntegrityCrendentials["UserName"],
+ 'Password': IntegrityCrendentials["Password"],
+ 'RPNum': IntegrityCrendentials["Vendor"],
+ 'BeginDt': IntegrityCrendentials["BeginDt"],
+ 'EndDt': IntegrityCrendentials["EndDt"],
+ 'ApprovalCode': "",
+ 'Register': "",
+ 'NameOnCard': "",
+ 'CardNum': "",
+ 'CardType': "",
+ 'ExcludeVoid': "true",
+ 'User': "",
+ 'SettleFlag': "",
+ 'SettleMsg': "",
+ 'SettleDt': "",
+ 'TransformType': "",
+ 'Xsl': "",
+ 'ColDelim': "",
+ 'RowDelim': "",
+ 'IncludeHeader': "true",
+ 'ExtData': ""
+};
 
 
 soap.createClient(IntegrityCrendentials["RecurringURL"], soap_client_options, function(err, client){
