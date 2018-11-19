@@ -67,9 +67,7 @@ module.exports = function(Ezpaymerchants) {
 
             if (isValidObject(user)) {
                 funAddUpdatePayees(payees, user["merchantId"]);
-                return cb(new HttpErrors.NotFound('user already exist', {
-                    expose: false
-                }));
+                return cb(new HttpErrors.NotFound('user already exist', { expose: false }));
             } else {
                 let saveMerchant = {
                     "userId": userId,
@@ -377,6 +375,44 @@ module.exports = function(Ezpaymerchants) {
             }));
         });
     }
+
+
+    Ezpaymerchants.remoteMethod(
+        'getMerchantFromUserId', {
+            http: {
+                verb: 'post'
+            },
+            description: ["It will fetch merchant info from user id."],
+            accepts: [{
+                arg: 'userId',
+                type: 'string',
+                required: true
+            }, ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaymerchants.getMerchantFromUserId = (userId, cb) => {
+        Ezpaymerchants.findOne({
+            where: {
+                "userId": userId
+            }
+        }).then(user => {
+             if (isValidObject(user)) {
+                cb(null,user);
+            } else {
+                return cb(new HttpErrors.NotFound('User id does not exists', { expose: false }));
+            }
+        }).catch(error=>{
+            return cb(new HttpErrors.InternalServerError('Db connection failed', {
+                        expose: false
+                    }));
+        });
+    }
+
 
 
 };
