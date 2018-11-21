@@ -22,7 +22,7 @@ let url = "";
 const {Service} = require('service-adapter-prodio');
 const paymentAdapter = new Service('payment');
 paymentAdapter.init();
-
+console.log(paymentAdapter);
 
 const isNull = function (val) {
   if (typeof val === 'string') { val = val.trim(); }
@@ -90,6 +90,10 @@ module.exports = function(Ezpaymerchants) {
                         }
                     },
                     "billing": {
+                        "accountName":"Shashikant Sharma",
+                        "routingNumber":"123412312431",
+                        "accountNumber":"134121314131",
+                        "fedTaxId":"12233442",
                         "cardHolderName": "Shashikant Sharma",
                         "creditCardNo": "4356234589794567",
                         "expiryDate": "12/2020",
@@ -177,7 +181,7 @@ module.exports = function(Ezpaymerchants) {
         }
     );
 
-    Ezpaymerchants.createMerchant = (userId, userInfo, cb) => {
+    Ezpaymerchants.createMerchant = async (userId, userInfo, cb) => {
 
 
         let payloadJson = userInfo;
@@ -185,7 +189,7 @@ module.exports = function(Ezpaymerchants) {
             payloadJson = userInfo["meta"];
         }
 
-        let resInfo = paymentAdapter.createMerchant(payloadJson);
+        let resInfo = await paymentAdapter.createMerchant(payloadJson);
         console.log("resInfo =>"+JSON.stringify(resInfo));
 
         const {
