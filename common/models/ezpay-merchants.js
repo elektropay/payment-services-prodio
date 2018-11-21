@@ -186,6 +186,7 @@ module.exports = function(Ezpaymerchants) {
         }
 
         let resInfo = paymentAdapter.createMerchant(payloadJson);
+        console.log("resInfo =>"+JSON.stringify(resInfo));
 
         const {
                 user_id = "",
