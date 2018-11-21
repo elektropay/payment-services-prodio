@@ -20,11 +20,10 @@ let url = "";
 // create paymentsources.json file.
 
 const {Service} = require('service-adapter-prodio');
-const NotificationAdapter = new Service('payment');
-NotificationAdapter.init();
+const paymentAdapter = new Service('payment');
+paymentAdapter.init();
 
-console.log(NotificationAdapter.createMerchant());
-console.log(NotificationAdapter.integrity.createMerchant());
+
 const isNull = function (val) {
   if (typeof val === 'string') { val = val.trim(); }
   if (val === undefined || val === null || typeof val === 'undefined' || val === '' || val === 'undefined') {
@@ -134,10 +133,14 @@ module.exports = function(Ezpaymerchants) {
             };
 
         paymentObj.execute(payload, function (response) {
-            if (isNull(response.data)) {
-                console.log(response);
+            if (!isNull(response.data.error.message)) {
+                //Error
+                //cb(null,response.response.data.error.message);
+                cb(new HttpErrors.InternalServerError(response.data.error.message, {
+                    expose: false
+                }));
             } else {
-                console.log(response);
+                cb(null,response.data);
             }
         });
     }
@@ -175,14 +178,22 @@ module.exports = function(Ezpaymerchants) {
     );
 
     Ezpaymerchants.createMerchant = (userId, userInfo, cb) => {
-        print(userId);
-        print(userInfo);
+
+
+        let payloadJson = userInfo;
+        if(!isNull(userInfo["meta"])){
+            payloadJson = userInfo["meta"];
+        }
+
+        let resInfo = paymentAdapter.createMerchant(payloadJson);
+
         const {
+                user_id = "",
                 basic = {},
                 business = {},
                 payees = {},
                 billing = {}
-        } = userInfo;
+        } = payloadJson;
         //print("23123412");
         //TODO : Integrating actual Payment Gateway API
 
