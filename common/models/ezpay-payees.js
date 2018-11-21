@@ -176,13 +176,39 @@ module.exports = function(Ezpaypayees) {
                description: ["Add Payee"],
                accepts: [
                	{arg: 'merchantId',type: 'string',required: true},
-               	{arg: 'payeeInfo',type: 'object',required: true,http: { source: 'body' }},
                ],
                returns: { type: 'object', root: true }
           }
      );
 
-	Ezpaypayees.importPayees = (merchantId,payeeInfo, cb) => {
+	Ezpaypayees.importPayees = (merchantId, cb) => {
+    const fs = require('fs');
+    const download = require('download');
+    var path = require("path");
+    const excelToJson = require('convert-excel-to-json');
+
+    let _url = "https://s3-us-west-2.amazonaws.com/ezpay-contents/template/PayerSample.xlsx";
+    let file_name = path.basename(_url);
+    let folder_path = 'temp_downloads/'+(new Date()).getTime();
+     
+    download(_url, folder_path).then(() => {
+        console.log('done!');
+        
+        const result = excelToJson({
+            sourceFile: folder_path+'/'+file_name
+        });
+        console.log(result);
+        if(result){
+          fs.unlink(folder_path+'/'+file_name, function(error) {
+              if (error) {
+                  throw error;
+              }
+              console.log('Deleted filename', file_name);
+          });
+        }
+
+    });
+
 		return cb(null, {"succes":true});
 	}
 

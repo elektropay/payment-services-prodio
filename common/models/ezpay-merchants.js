@@ -16,7 +16,133 @@ let async = require('async');
 let payload = {};
 let url = "";
 
+// After installing the below module, create folder "services" inside "server" folder and
+// create paymentsources.json file.
+
+const {Service} = require('service-adapter-prodio');
+const NotificationAdapter = new Service('payment');
+NotificationAdapter.init();
+
+console.log(NotificationAdapter.createMerchant());
+console.log(NotificationAdapter.integrity.createMerchant());
+const isNull = function (val) {
+  if (typeof val === 'string') { val = val.trim(); }
+  if (val === undefined || val === null || typeof val === 'undefined' || val === '' || val === 'undefined') {
+    return true;
+  }
+  return false;
+};
+
 module.exports = function(Ezpaymerchants) {
+
+    Ezpaymerchants.remoteMethod(
+        'testMerchant', {
+            http: {
+                verb: 'post'
+            },
+            description: ["It will register the subscriber as merchant into payment gateway."],
+            accepts: [
+                {
+                    arg: 'userInfo',
+                    type: 'object',
+                    required: true,
+                    http: {
+                        source: 'body'
+                    }
+                }
+            ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaymerchants.testMerchant = ( userInfo, cb) => {
+        const paymentClass = require('payment-module-prodio');
+        const paymentObj = new paymentClass();
+
+        const  payload = {
+                "action": "CREATE_MERCHANT", /*(required)*/
+                "meta": {
+                    "userId":"bb15dc52-86e2-45c0-b5ab-889aebf7a1d6", /*(required)*/
+                    "basic": {
+                        "firstName": "Shashikant",
+                        "lastName": "Sharma",
+                        "email": "shashikant@prodio.in",
+                        "password": "shashikant23",
+                        "mobileNumber": "8097487977",
+                        "dateOfBirth": "MM-DD-YYYY",
+                        "ssn": ""
+                    },
+                    "business": {
+                        "businessName": "BeingExpert Inc.",
+                        "dbaName": "BeingExpert Inc.",
+                        "taxId": "",
+                        "contactEmail": "shashikant@prodio.in",
+                        "contactNumber": "8097487977",
+                        "addressSameAsUser": "true",
+                        "address": {
+                            "country": "",
+                            "state": "",
+                            "city": "",
+                            "streetAddress": "",
+                            "zipCode": ""
+                        }
+                    },
+                    "billing": {
+                        "cardHolderName": "Shashikant Sharma",
+                        "creditCardNo": "4356234589794567",
+                        "expiryDate": "12/2020",
+                        "cvv": "345",
+                        "saveCard": "false",
+                        "addressSameAsBusiness": "false",
+                        "address": {
+                            "country": "",
+                            "state": "",
+                            "city": "",
+                            "streetAddress": "",
+                            "zipCode": ""
+                        }
+                    },
+                    "payees": [{
+                            "firstName": "Pawan",
+                            "lastName": "Wagh",
+                            "email": "pawan@prodio.in",
+                            "mobileNumber": "12312443222",
+                            "address": "test address",
+                            "paymentMethod": "CREDIT_CARD"
+                        },
+                        {
+                            "firstName": "Anurag",
+                            "lastName": "Tiwari",
+                            "email": "anurag@prodio.in",
+                            "mobileNumber": "12312443222",
+                            "address": "test address",
+                            "paymentMethod": "CREDIT_CARD"
+                        },
+                        {
+                            "firstName": "Vatsal",
+                            "lastName": "Shah",
+                            "email": "vatsal@prodio.in",
+                            "mobileNumber": "123893222",
+                            "address": "test address",
+                            "paymentMethod": "CREDIT_CARD"
+                        }
+                    ]
+                }
+            };
+
+        paymentObj.execute(payload, function (response) {
+            if (isNull(response.data)) {
+                console.log(response);
+            } else {
+                console.log(response);
+            }
+        });
+    }
+
+
 
     Ezpaymerchants.remoteMethod(
         'createMerchant', {
@@ -49,7 +175,8 @@ module.exports = function(Ezpaymerchants) {
     );
 
     Ezpaymerchants.createMerchant = (userId, userInfo, cb) => {
-        //print("1321222");
+        print(userId);
+        print(userInfo);
         const {
                 basic = {},
                 business = {},

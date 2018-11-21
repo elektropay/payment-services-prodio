@@ -28,6 +28,7 @@
       "remoting": {
         "sharedMethods": {
           "*": false,
+          "testMerchant":true,
           "createMerchant": true,
           "getPayeesListing": true,
           "removeById": true,

@@ -4,7 +4,7 @@
         "client_secret": "",
         "client_id": "",
         "merchant_id": "",
-        "user_name": "",
+        "username": "",
         "password": "",
         "connector": "braintree-connector-prodio",
         "is_active": false
@@ -14,8 +14,8 @@
         "client_secret": "",
         "client_id": "",
         "merchant_id": "",
-        "user_name": "",
-        "password": "",
+        "username": "kinetempapi123",
+        "password": "Technologies1",
         "connector": "integrity-connector-prodio",
         "is_active": true
     }
