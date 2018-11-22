@@ -12,6 +12,16 @@ const {
     print,
 } = require('../../utility/helper');
 
+const isNull = function(val) {
+    if (typeof val === 'string') {
+        val = val.trim();
+    }
+    if (val === undefined || val === null || typeof val === 'undefined' || val === '' || val === 'undefined') {
+        return true;
+    }
+    return false;
+};
+
 module.exports = function(Ezpaypaymenttransactions) {
 
 	Ezpaypaymenttransactions.remoteMethod(
@@ -20,21 +30,25 @@ module.exports = function(Ezpaypaymenttransactions) {
                description: ["This request will initiate a payment request transaction"],
                accepts: [
                	{ arg: 'merchantId',type: 'string',required: true},
-                { arg: 'payerId',type: 'string',required: true},
                	{ arg: 'paymentInfo',type: 'object', required: true, http: { source: 'body' }}
                ],
                returns: { type: 'object', root: true }
           }
      );
 
-	Ezpaypaymenttransactions.requestPayment = (merchantId,payerId,paymentInfo, cb) => {
+	Ezpaypaymenttransactions.requestPayment = (merchantId,paymentInfo, cb) => {
+		
+        if (!isNull(paymentInfo["meta"])) {
+            paymentInfo = paymentInfo["meta"];
+        }
+
 		const paymentDetails = {
 					currency:"USD",
 					isRecurring:false,
 					dueDate:"MM/DD/YYYY",
 				    total: {
 				        label: "My Merchant",
-				        amount: { value: "27.50", currency: "USD" },
+				        amount: { value: parseFloat(paymentInfo["amount"]), currency: "USD" },
 				    },
 				    displayItems: [
 					    {
@@ -53,8 +67,10 @@ module.exports = function(Ezpaypaymenttransactions) {
 
 		let savePayment = {
 			"merchantId": merchantId,
-			"payeeId": payerId ,
-			"totalAmount": totalAmount ,
+			"payeeId": paymentInfo["payerId"] ,
+			"totalAmount": parseFloat(paymentInfo["amount"]) ,
+			"isRecurring": paymentInfo["isRecurring"] ,
+			"payableDate": paymentInfo["payableDate"] ,
 			"transactionStatus":"PENDING",
 			"metaData": paymentDetails,
 			"isActive":true,

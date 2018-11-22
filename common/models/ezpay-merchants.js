@@ -35,6 +35,10 @@ const isNull = function(val) {
     return false;
 };
 
+const convertObjectIdToString = function(objectID) {
+    return objectID.toString().substring(0,8);
+};
+
 module.exports = function(Ezpaymerchants) {
 
     Ezpaymerchants.remoteMethod(
@@ -234,12 +238,12 @@ module.exports = function(Ezpaymerchants) {
                 payees = {},
                 billing = {}
             } = payloadJson;
-            console.log("payees==>"+JSON.stringify(payees));
+            //console.log("payees==>"+JSON.stringify(payees));
             //TODO : Integrating actual Payment Gateway API
 
             Ezpaymerchants.findOne({
                 where: {
-                    "userId": userId
+                    "userId": convertObjectIdToString(userId)
                 }
             }).then(user => {
                 if (isValidObject(user)) {
@@ -255,7 +259,7 @@ module.exports = function(Ezpaymerchants) {
                         let resInfo = sdkResponse;
 
                         let saveMerchant = {
-                            "userId": userId,
+                            "userId": convertObjectIdToString(userId),
                             "paymentGateway": "INTEGRITY",
                             "userInfo": basic,
                             "businessInfo": business,
@@ -424,7 +428,9 @@ module.exports = function(Ezpaymerchants) {
             if (isValidObject(payees)) {
                 return cb(null, payees);
             } else {
-                return cb(null, payees);
+                return cb(new HttpErrors.InternalServerError('Invalid Merchant Id', {
+	                expose: false
+	            }));
             }
         }).catch(error => {
             return cb(new HttpErrors.InternalServerError('Db connection failed', {
@@ -625,7 +631,7 @@ module.exports = function(Ezpaymerchants) {
     Ezpaymerchants.getMerchantFromUserId = (userId, cb) => {
         Ezpaymerchants.findOne({
             where: {
-                "userId": userId
+                "userId": convertObjectIdToString(userId)
             }
         }).then(user => {
             if (isValidObject(user)) {

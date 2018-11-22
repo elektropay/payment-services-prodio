@@ -12,7 +12,7 @@
       "id": true,
       "defaultFn": "uuidv4"
     },
-    "payeeId": {
+    "payerId": {
       "type": "string"
     },
     "cardHolderName": {
@@ -43,7 +43,7 @@
     "Payee": {
       "type": "belongsTo",
       "model": "users",
-      "foreignKey": "payeeId"
+      "foreignKey": "payerId"
     }
   },
   "acls": [],

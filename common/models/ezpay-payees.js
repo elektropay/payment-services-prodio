@@ -12,6 +12,16 @@ const {
     print,
 } = require('../../utility/helper');
 
+const isNull = function(val) {
+    if (typeof val === 'string') {
+        val = val.trim();
+    }
+    if (val === undefined || val === null || typeof val === 'undefined' || val === '' || val === 'undefined') {
+        return true;
+    }
+    return false;
+};
+
 module.exports = function(Ezpaypayees) {
 
 	Ezpaypayees.remoteMethod(
@@ -27,6 +37,11 @@ module.exports = function(Ezpaypayees) {
      );
 
 	Ezpaypayees.addPayee = (merchantId,payeeInfo, cb) => {
+    
+        if (!isNull(payeeInfo["meta"])) {
+            payeeInfo = payeeInfo["meta"]["payerInfo"];
+        }
+
           Ezpaypayees.app.models.ezpayMerchants.findById(merchantId,function(err,merchantInfo){
                if(err){
                     cb(new HttpErrors.InternalServerError('Query Error.', {expose: false }));
@@ -217,14 +232,14 @@ module.exports = function(Ezpaypayees) {
                http: { verb: 'post' },
                description: ["Add Payee"],
                accepts: [
-               	{arg: 'payeeId',type: 'string',required: true},
+               	{arg: 'payerId',type: 'string',required: true},
                	{arg: 'cardInfo',type: 'object',required: true,http: { source: 'body' }},
                ],
                returns: { type: 'object', root: true }
           }
      );
 
-	Ezpaypayees.addCardForPayee = (payeeId,cardInfo, cb) => {
+	Ezpaypayees.addCardForPayee = (payerId,cardInfo, cb) => {
           // let cardInfo = {
           //      "cardNumber":"",
           //      "cardHolderName":"",
@@ -232,9 +247,13 @@ module.exports = function(Ezpaypayees) {
           //      "cvv":"",
           //      "cardType":""
           // }
+
+          if (!isNull(cardInfo["meta"])) {
+            cardInfo = cardInfo["meta"];
+          }
           Ezpaypayees.findById(payeeId).then(payeeObj=>{
                if(isValidObject(payeeObj)){
-                    let filterObj = {"where":{"payeeId":payeeId,"cardType": cardInfo["cardType"],"cardNumberAlias": cardInfo["cardNumber"] }};
+                    let filterObj = {"where":{"payerId":payerId,"cardType": cardInfo["cardType"],"cardNumberAlias": cardInfo["cardNumber"] }};
 
                     Ezpaypayees.app.models.savedCardsMetaData.findOne(filterObj).then(cardData=>{
                          if(isValidObject(cardData)){
@@ -243,7 +262,7 @@ module.exports = function(Ezpaypayees) {
                          }else{
                               //create new
                               let cardInfo = {
-                                   "payeeId": payeeId ,
+                                   "payerId": payerId ,
                                    "cardHolderName": cardInfo["cardHolderName"],
                                    "cardNumberAlias": cardInfo["cardNumber"] ,
                                    "expiryDate": cardInfo["expDate"],
@@ -313,22 +332,24 @@ module.exports = function(Ezpaypayees) {
                http: { verb: 'post' },
                description: ["get listing to cards saved by user."],
                accepts: [
-                    {arg: 'payeeId',type: 'string',required: true}
+                    {arg: 'payerId',type: 'string',required: true}
                ],
                returns: { type: 'object', root: true }
           }
      );
 
-     Ezpaypayees.getSavedCards = (payeeId, cb) => {
+     Ezpaypayees.getSavedCards = (payerId, cb) => {
           Ezpaymerchants.app.models.savedCardsMetaData.find({
                 include:[{relation:'Payee'}],
-                 where: {"payeeId": payeeId,"isActive":true},
+                 where: {"payeeId": payerId,"isActive":true},
              }).then(userCards => {
                  //print(payees);
                  if (isValidObject(userCards)) {
                      return cb(null, userCards);
                  } else {
-                     return cb(null, userCards);
+                     return cb(new HttpErrors.InternalServerError('Invalid payer id', {
+                       expose: false
+                   }));
                  }
              }).catch(error => {
                  return cb(new HttpErrors.InternalServerError('Db connection failed', {
