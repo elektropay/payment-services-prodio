@@ -20,14 +20,14 @@ module.exports = function(Ezpaypaymenttransactions) {
                description: ["This request will initiate a payment request transaction"],
                accepts: [
                	{ arg: 'merchantId',type: 'string',required: true},
-                { arg: 'payeeId',type: 'string',required: true},
+                { arg: 'payerId',type: 'string',required: true},
                	{ arg: 'paymentInfo',type: 'object', required: true, http: { source: 'body' }}
                ],
                returns: { type: 'object', root: true }
           }
      );
 
-	Ezpaypaymenttransactions.requestPayment = (merchantId,payeeId,paymentInfo, cb) => {
+	Ezpaypaymenttransactions.requestPayment = (merchantId,payerId,paymentInfo, cb) => {
 		const paymentDetails = {
 					currency:"USD",
 					isRecurring:false,
@@ -53,7 +53,7 @@ module.exports = function(Ezpaypaymenttransactions) {
 
 		let savePayment = {
 			"merchantId": merchantId,
-			"payeeId": payeeId ,
+			"payeeId": payerId ,
 			"totalAmount": totalAmount ,
 			"transactionStatus":"PENDING",
 			"metaData": paymentDetails,
