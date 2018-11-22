@@ -29,7 +29,7 @@ module.exports = function(Ezpaypayees) {
                http: { verb: 'post' },
                description: ["Add Payee"],
                accepts: [
-               	{ arg: 'merchantId',type: 'string',required: true},
+               	{ arg: 'merchantId',type: 'string',required: true, http: { source: 'query' }},
                	{ arg: 'payeeInfo',type: 'object', required: true, http: { source: 'body' }}
                ],
                returns: { type: 'object', root: true }
@@ -129,7 +129,7 @@ module.exports = function(Ezpaypayees) {
                http: { verb: 'post' },
                description: ["Add Payee"],
                accepts: [
-               	{ arg: 'payerId',type: 'string',required: true},
+               	{ arg: 'payerId',type: 'string',required: true,http: { source: 'query' }},
                	{ arg: 'payeeInfo',type: 'object', required: true, http: { source: 'body' }}
                ],
                returns: { type: 'object', root: true }
@@ -173,16 +173,16 @@ module.exports = function(Ezpaypayees) {
                http: { verb: 'post' },
                description: ["Add Payee"],
                accepts: [
-               	{arg: 'payeeIds',type: 'array',description:"comma seperated array like 1234,84356,3533",required: true},
+               	{arg: 'payerIds',type: 'array',description:"comma seperated array like 1234,84356,3533",required: true,http: { source: 'query' }},
                ],
                returns: { type: 'object', root: true }
           }
      );
 
-	Ezpaypayees.removePayees = (payeeIds, cb) => {
-          payeeIds = String(payeeIds).split(",");
+	Ezpaypayees.removePayees = (payerIds, cb) => {
+          payerIds = String(payerIds).split(",");
 
-          Ezpaypayees.updateAll({"in":payeeIds},{"isActive":false}).then(res=>{
+          Ezpaypayees.updateAll({"in":payerIds},{"isActive":false}).then(res=>{
                cb(null,{"success":true});
           }).catch(error=>{
                cb(new HttpErrors.InternalServerError('Server Error, '+JSON.stringify(error), { expose: false }));
@@ -236,7 +236,7 @@ module.exports = function(Ezpaypayees) {
                http: { verb: 'post' },
                description: ["Add Payee"],
                accepts: [
-               	{arg: 'payerId',type: 'string',required: true},
+               	{arg: 'payerId',type: 'string',required: true,http: { source: 'query' }},
                	{arg: 'cardInfo',type: 'object',required: true,http: { source: 'body' }},
                ],
                returns: { type: 'object', root: true }
@@ -299,8 +299,8 @@ module.exports = function(Ezpaypayees) {
                http: { verb: 'post' },
                description: ["Add Payee"],
                accepts: [
-               	{arg: 'payeeId',type: 'string',required: true},
-               	{arg: 'cardId',type: 'object',required: true},
+               	{arg: 'payeeId',type: 'string',required: true,http: { source: 'query' }},
+               	{arg: 'cardId',type: 'object',required: true,http: { source: 'query' }},
                ],
                returns: { type: 'object', root: true }
           }
@@ -336,7 +336,7 @@ module.exports = function(Ezpaypayees) {
                http: { verb: 'post' },
                description: ["get listing to cards saved by user."],
                accepts: [
-                    {arg: 'payerId',type: 'string',required: true}
+                    {arg: 'payerId',type: 'string',required: true,http: { source: 'query' }}
                ],
                returns: { type: 'object', root: true }
           }

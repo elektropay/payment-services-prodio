@@ -29,7 +29,7 @@ module.exports = function(Ezpaypaymenttransactions) {
                http: { verb: 'post' },
                description: ["This request will initiate a payment request transaction"],
                accepts: [
-               	{ arg: 'merchantId',type: 'string',required: true},
+               	{ arg: 'merchantId',type: 'string',required: true,http: { source: 'query' }},
                	{ arg: 'paymentInfo',type: 'object', required: true, http: { source: 'body' }}
                ],
                returns: { type: 'object', root: true }
@@ -37,7 +37,6 @@ module.exports = function(Ezpaypaymenttransactions) {
      );
 
 	Ezpaypaymenttransactions.requestPayment = (merchantId,paymentInfo, cb) => {
-		
         if (!isNull(paymentInfo["meta"])) {
             paymentInfo = paymentInfo["meta"];
         }
@@ -67,7 +66,7 @@ module.exports = function(Ezpaypaymenttransactions) {
 
 		let savePayment = {
 			"merchantId": merchantId,
-			"payeeId": paymentInfo["payerId"] ,
+			"payerId": paymentInfo["payerId"] ,
 			"totalAmount": parseFloat(paymentInfo["amount"]) ,
 			"isRecurring": paymentInfo["isRecurring"] ,
 			"payableDate": paymentInfo["payableDate"] ,
@@ -77,12 +76,87 @@ module.exports = function(Ezpaypaymenttransactions) {
 			"createdAt": new Date()
 		};
 
+
 		Ezpaypaymenttransactions.create(savePayment).then(transactionInfo=>{
 			cb(null,{"success":true,"transactionId":transactionInfo["transactionId"]});
 		}).catch(error=>{
 			cb(new HttpErrors.InternalServerError('Error while creating new payment transaction.', { expose: false }));
 		});
 	}
+
+
+	Ezpaypaymenttransactions.remoteMethod(
+          'processPayment', {
+               http: { verb: 'post' },
+               description: ["This request will initiate a payment request transaction"],
+               accepts: [
+               	{ arg: 'transactionId',type: 'string',required: true,http: { source: 'query' }},
+               	{ arg: 'payerId',type: 'string',required: true,http: { source: 'query' }},
+               	{ arg: 'cardId',type: 'string',required: false,http: { source: 'query' }},
+               	{ arg: 'cardInfo',type: 'object', required: false, http: { source: 'body' }}
+               ],
+               returns: { type: 'object', root: true }
+          }
+     );
+
+	Ezpaypaymenttransactions.processPayment = (transactionId,payerId,cardId,cardInfo, cb) => {
+		if (!isNull(cardInfo["meta"])) {
+            cardInfo = cardInfo["meta"]["cardInfo"];
+        }
+
+        Ezpaypaymenttransactions.app.models.ezpayPayees.findById(payerId).then(payeeInfo=>{
+           if(isValidObject(payeeInfo)){
+                Ezpaypaymenttransactions.findById(transactionId).then(transInfo=>{
+                     if(isValidObject(transInfo)){
+                          transInfo.updateAttributes({"transactionStatus":"PAID","paymentDate":new Date()}).then(updatedCount=>{
+                               cb(null,{"success":true});
+                          }).catch(error=>{
+                               cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
+                          });
+                     }else{
+                          cb(new HttpErrors.InternalServerError('Invalid Transaction ID.', { expose: false }));
+                     }
+                }).catch(error=>{
+                     cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
+                });
+           }else{
+                cb(new HttpErrors.InternalServerError('Invalid Payee ID.', { expose: false }));
+           }
+      }).catch(error=>{
+           cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
+      });
+	}
+
+
+	Ezpaypaymenttransactions.remoteMethod(
+          'getTransactionsListing', {
+               http: { verb: 'post' },
+               description: ["This request will initiate a payment request transaction"],
+               accepts: [
+               	{ arg: 'merchantId',type: 'string',required: true,http: { source: 'query' }},
+               	{ arg: 'pageNo',type: 'string',required: true,http: { source: 'query' }},
+               	{ arg: 'filterCriteria',type: 'object', required: false, http: { source: 'body' }}
+               ],
+               returns: { type: 'object', root: true }
+          }
+     );
+
+	Ezpaypaymenttransactions.getTransactionsListing = (merchantId,pageNo,filterCriteria, cb) => {
+		if (!isNull(filterCriteria["meta"])) {
+            filterCriteria = filterCriteria["meta"]["filterCriteria"];
+        }
+
+        Ezpaypaymenttransactions.find({"where":{"merchantId":merchantId},"include":[{relation:'Payer'}],"order":"createdAt desc"}).then(transactions=>{
+        	if(isValidObject(transactions)){
+        		cb(null,transactions);
+        	}else{
+        		cb(new HttpErrors.InternalServerError('No Transactions Found.', { expose: false }));
+        	}
+        }).catch(error=>{
+        	cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
+        })
+	}
+
 
 
 };

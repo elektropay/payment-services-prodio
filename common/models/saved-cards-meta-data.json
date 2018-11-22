@@ -42,7 +42,7 @@
   "relations": {
     "Payee": {
       "type": "belongsTo",
-      "model": "users",
+      "model": "ezpayPayees",
       "foreignKey": "payerId"
     }
   },

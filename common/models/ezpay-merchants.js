@@ -438,7 +438,8 @@ module.exports = function(Ezpaymerchants) {
             accepts: [{
                 arg: 'merchantId',
                 type: 'string',
-                required: true
+                required: true,
+                http: { source: 'query' }
             }],
             returns: {
                 type: 'array',
@@ -483,7 +484,8 @@ module.exports = function(Ezpaymerchants) {
             accepts: [{
                 arg: 'merchantId',
                 type: 'string',
-                required: true
+                required: true,
+                http: { source: 'query' }
             }, ],
             returns: {
                 type: 'object',
@@ -555,7 +557,8 @@ module.exports = function(Ezpaymerchants) {
             accepts: [{
                 arg: 'merchantId',
                 type: 'string',
-                required: true
+                required: true,
+                http: { source: 'query' }
             }, ],
             returns: {
                 type: 'object',
@@ -604,7 +607,8 @@ module.exports = function(Ezpaymerchants) {
             accepts: [{
                 arg: 'merchantId',
                 type: 'string',
-                required: true
+                required: true,
+                http: { source: 'query' }
             }, ],
             returns: {
                 type: 'object',
@@ -653,7 +657,8 @@ module.exports = function(Ezpaymerchants) {
             accepts: [{
                 arg: 'userId',
                 type: 'string',
-                required: true
+                required: true,
+                http: { source: 'query' }
             }, ],
             returns: {
                 type: 'object',

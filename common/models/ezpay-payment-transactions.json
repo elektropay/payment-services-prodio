@@ -12,7 +12,7 @@
       "id": true,
       "defaultFn": "uuidv4"
     },
-    "payeeId": {
+    "payerId": {
       "type": "string"
     },
     "merchantId": {
@@ -32,11 +32,25 @@
       "default":true
     },
     "createdAt": {
-      "type": "string"
+      "type": "date"
+    },
+    "paymentDate":{
+      "type":"date"
     }
   },
   "validations": [],
-  "relations": {},
+  "relations": {
+    "Payer": {
+      "type": "belongsTo",
+      "model": "ezpayPayees",
+      "foreignKey": "payerId"
+    },
+    "Merchant": {
+      "type": "belongsTo",
+      "model": "ezpayMerchants",
+      "foreignKey": "merchantId"
+    }
+  },
   "acls": [],
   "methods": {}
 }
