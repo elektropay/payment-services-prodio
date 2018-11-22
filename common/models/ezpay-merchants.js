@@ -22,7 +22,6 @@ let url = "";
 const {Service} = require('service-adapter-prodio');
 const paymentAdapter = new Service('payment');
 paymentAdapter.init();
-console.log(paymentAdapter);
 
 const isNull = function (val) {
   if (typeof val === 'string') { val = val.trim(); }
@@ -64,36 +63,36 @@ module.exports = function(Ezpaymerchants) {
         const  payload = {
                 "action": "CREATE_MERCHANT", /*(required)*/
                 "meta": {
-                    "userId":"bb15dc52-86e2-45c0-b5ab-889aebf7a1d6", /*(required)*/
+                    "userId":"bb15dc52-86e2-45c0-b5ab-889aebf7a2e6", /*(required)*/
                     "basic": {
                         "firstName": "Shashikant",
                         "lastName": "Sharma",
-                        "email": "shashikant@prodio.in",
+                        "email": "dc.shashikant@gmail.com",
                         "password": "shashikant23",
                         "mobileNumber": "8097487977",
                         "dateOfBirth": "MM-DD-YYYY",
                         "ssn": ""
                     },
                     "business": {
-                        "businessName": "BeingExpert Inc.",
-                        "dbaName": "BeingExpert Inc.",
+                        "businessName": "Food On Wheels",
+                        "dbaName": "Food On Wheels",
                         "taxId": "",
-                        "contactEmail": "shashikant@prodio.in",
+                        "contactEmail": "dc.shashikant@gmail.com",
                         "contactNumber": "8097487977",
                         "addressSameAsUser": "true",
                         "address": {
-                            "country": "",
-                            "state": "",
-                            "city": "",
-                            "streetAddress": "",
-                            "zipCode": ""
+                            "country": "US",
+                            "state": "IL",
+                            "city": "Chicago",
+                            "streetAddress": "Valid Address",
+                            "zipCode": "60606"
                         }
                     },
                     "billing": {
                         "accountName":"Shashikant Sharma",
-                        "routingNumber":"123412312431",
+                        "routingNumber":"123456789111111111111",
                         "accountNumber":"134121314131",
-                        "fedTaxId":"12233442",
+                        "fedTaxId":"123456789",
                         "cardHolderName": "Shashikant Sharma",
                         "creditCardNo": "4356234589794567",
                         "expiryDate": "12/2020",
@@ -101,11 +100,11 @@ module.exports = function(Ezpaymerchants) {
                         "saveCard": "false",
                         "addressSameAsBusiness": "false",
                         "address": {
-                            "country": "",
-                            "state": "",
-                            "city": "",
-                            "streetAddress": "",
-                            "zipCode": ""
+                            "country": "US",
+                            "state": "IL",
+                            "city": "Chicago",
+                            "streetAddress": "Valid Address",
+                            "zipCode": "60606"
                         }
                     },
                     "payees": [{
@@ -137,14 +136,23 @@ module.exports = function(Ezpaymerchants) {
             };
 
         paymentObj.execute(payload, function (response) {
-            if (!isNull(response.data.error.message)) {
-                //Error
-                //cb(null,response.response.data.error.message);
-                cb(new HttpErrors.InternalServerError(response.data.error.message, {
-                    expose: false
-                }));
-            } else {
-                cb(null,response.data);
+            console.log("response from payment sdk=====>:", response);
+            if (!isNull(response.data)) {
+                if (!isNull(response.data.error.message)) {
+                    //Error
+                    //cb(null,response.response.data.error.message);
+                    cb(new HttpErrors.InternalServerError(response.data.error.message, {
+                        expose: false
+                    }));
+                } else {
+                    cb(null,response.data);
+                }
+            }else{
+                let _msg = isNull(response["data"]["message"])?'Internal Server Error':response["data"]["message"];
+
+                cb(new HttpErrors.InternalServerError(_msg, {
+                        expose: false
+                    }));
             }
         });
     }
@@ -181,67 +189,90 @@ module.exports = function(Ezpaymerchants) {
         }
     );
 
-    Ezpaymerchants.createMerchant = async (userId, userInfo, cb) => {
-
-
+    Ezpaymerchants.createMerchant = (userId, userInfo) => {
         let payloadJson = userInfo;
         if(!isNull(userInfo["meta"])){
             payloadJson = userInfo["meta"];
         }
+        try{
+        	console.log(paymentAdapter);
+        	
+        	paymentAdapter.createMerchant(payloadJson).then(sdkResponse=>{
+        	//paymentAdapter.createMerchant(payloadJson, function (sdkResponse) {
+        		let resInfo = sdkResponse;
+        		console.log("inside try");
 
-        let resInfo = await paymentAdapter.createMerchant(payloadJson);
-        console.log("resInfo =>"+JSON.stringify(resInfo));
+	        	const {
+	                    user_id = "",
+	                    basic = {},
+	                    business = {},
+	                    payees = {},
+	                    billing = {}
+	            } = payloadJson;
+	            //print("23123412");
+	            //TODO : Integrating actual Payment Gateway API
 
-        const {
-                user_id = "",
-                basic = {},
-                business = {},
-                payees = {},
-                billing = {}
-        } = payloadJson;
-        //print("23123412");
-        //TODO : Integrating actual Payment Gateway API
+	            Ezpaymerchants.findOne({
+	                where: {
+	                    "userId": userId
+	                }
+	            }).then(user => {
+	                console.log("inside try user")
+	                if (isValidObject(user)) {
+	                    console.log("inside try user NotFound")
+	                    funAddUpdatePayees(payees, user["merchantId"]);
+	                    cb(new HttpErrors.NotFound('user already exist', { expose: false }));
+	                    
+	                } else {
+	                    console.log("inside try sue found")
+	                    let saveMerchant = {
+	                        "userId": userId,
+	                        "paymentGateway": "INTEGRITY",
+	                        "userInfo": basic,
+	                        "businessInfo": business,
+	                        "billingInfo": billing,
+	                        "isActive": true,
+	                        "isApprovedByGateway":false,
+	                        "isDeleted": false,
+	                        "createdAt": new Date(),
+	                        "updatedAt": new Date()
+	                    };
 
-        Ezpaymerchants.findOne({
-            where: {
-                "userId": userId
-            }
-        }).then(user => {
+	                    Ezpaymerchants.create(saveMerchant).then(async (merchantObj) => {
+	                        funAddUpdatePayees(payees, merchantObj["id"]);
+	                        console.log("inside try createMerchant from payment service success");
+	                        const rr = JSON.stringify({
+	                        	"merchantId": merchantObj["id"],
+	                        	"data": resInfo,
+	                        });
+	                        console.log("rr:", rr);
+	                        return Promise.resolve(rr);
+	                    }).catch(async (error) => {
+	                        let _msg = isNull(error["message"])?'Internal Server Error':error["message"];
+	                        console.log("12347_msg:", _msg);
+	                        const err = new HttpErrors.InternalServerError(_msg, { expose: false});
+	                        return err;
+	                    });
+	                }
 
-            if (isValidObject(user)) {
-                funAddUpdatePayees(payees, user["merchantId"]);
-                return cb(new HttpErrors.NotFound('user already exist', { expose: false }));
-            } else {
-                let saveMerchant = {
-                    "userId": userId,
-                    "paymentGateway": "INTEGRITY",
-                    "userInfo": basic,
-                    "businessInfo": business,
-                    "billingInfo": billing,
-                    "isActive": true,
-                    "isApprovedByGateway":false,
-                    "isDeleted": false,
-                    "createdAt": new Date(),
-                    "updatedAt": new Date()
-                };
+	            }).catch(error => {
+	                let _msg = isNull(error["message"])?'Internal Server Error':error["message"];
+	                console.log("12346_msg:", _msg);
+	                const err = new HttpErrors.InternalServerError(_msg, { expose: false});
+	                return err;
+	            });
 
-                Ezpaymerchants.create(saveMerchant).then(merchantObj => {
-                    funAddUpdatePayees(payees, merchantObj["id"]);
-                    return cb(null, merchantObj);
-                }).catch(error => {
-                    print(error);
-                    return cb(new HttpErrors.InternalServerError('Db connection failed', {
-                        expose: false
-                    }));
-                });
-            }
+        	}).catch(sdkError=>{
 
-        }).catch(error => {
-            print(error);
-            return cb(new HttpErrors.InternalServerError('Db connection failed', {
-                expose: false
-            }));
-        });
+        	})
+            
+            
+        }catch(error){
+            let _msg = isNull(error["message"])?'Internal Server Error':error["message"];
+            console.log("12345_msg:", _msg);
+            const err = new HttpErrors.InternalServerError(_msg, { expose: false });
+            return err;
+        }
     }
 
     function funAddUpdatePayees(payees, merchantId) {
