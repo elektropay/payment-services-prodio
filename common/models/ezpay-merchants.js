@@ -394,6 +394,40 @@ module.exports = function(Ezpaymerchants) {
         });
     }
 
+    Ezpaymerchants.remoteMethod(
+        'updateMerchantProfile', {
+            http: {
+                verb: 'post'
+            },
+            description: ["It will register the subscriber as merchant into payment gateway."],
+            accepts: [{
+                    arg: 'merchantId',
+                    type: 'string',
+                    required: true,
+                    http: {
+                        source: 'query'
+                    }
+                },
+                {
+                    arg: 'merchantInfo',
+                    type: 'object',
+                    required: true,
+                    http: {
+                        source: 'body'
+                    }
+                }
+            ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaymerchants.updateMerchantProfile = (merchantId, merchantInfo, cb) => {
+    	cb(null,merchantInfo);
+    }
+
 
     Ezpaymerchants.remoteMethod(
         'getPayeesListing', {

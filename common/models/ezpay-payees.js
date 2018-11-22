@@ -129,16 +129,20 @@ module.exports = function(Ezpaypayees) {
                http: { verb: 'post' },
                description: ["Add Payee"],
                accepts: [
-               	{ arg: 'payeeId',type: 'string',required: true},
+               	{ arg: 'payerId',type: 'string',required: true},
                	{ arg: 'payeeInfo',type: 'object', required: true, http: { source: 'body' }}
                ],
                returns: { type: 'object', root: true }
           }
      );
 
-	Ezpaypayees.editPayee = (payeeId,payeeInfo, cb) => {
+	Ezpaypayees.editPayee = (payerId,payeeInfo, cb) => {
 
-          Ezpaypayees.findById(payeeId).then(payeeObj => {
+    if (!isNull(payeeInfo["meta"])) {
+            payeeInfo = payeeInfo["meta"]["payerInfo"];
+        }
+
+          Ezpaypayees.findById(payerId).then(payeeObj => {
                if(isValidObject(payeeObj)){
                     let payeeJson = {
                          "firstName": isValid(payeeInfo["firstName"]) ? payeeInfo["firstName"] : "",
