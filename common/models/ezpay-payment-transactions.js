@@ -196,6 +196,7 @@ module.exports = function(Ezpaypaymenttransactions) {
      );
 
 	Ezpaypaymenttransactions.getTransactionDetails = (transactionId, cb) => {
+		console.log("transactionId=>"+transactionId)
 		Ezpaypaymenttransactions.findOne({"where":{"transactionId":transactionId},"include":[{relation:'Payer'},{relation:'Merchant'}]}).then(transObj=>{
 	       if(isValidObject(transObj)){
 	            cb(null,transObj);
