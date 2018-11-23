@@ -1,5 +1,6 @@
 'use strict';
 const HttpErrors = require('http-errors');
+const async = require('async');
 const {
     findReplace,
     unique,
@@ -156,6 +157,94 @@ module.exports = function(Ezpaypaymenttransactions) {
         	cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
         })
 	}
+
+
+	Ezpaypaymenttransactions.remoteMethod(
+          'getTransactionDetails', {
+               http: { verb: 'post' },
+               description: ["This request will provide transaction details"],
+               accepts: [
+               	{ arg: 'transactionId',type: 'string',required: true,http: { source: 'query' }},
+               ],
+               returns: { type: 'object', root: true }
+          }
+     );
+
+	Ezpaypaymenttransactions.getTransactionDetails = (transactionId, cb) => {
+		Ezpaypaymenttransactions.findOne({"where":{"transactionId":transactionId},"include":[{relation:'Payer'}]}).then(transObj=>{
+	       if(isValidObject(transObj)){
+	            cb(null,transObj);
+	       } else {
+	            cb(new HttpErrors.InternalServerError('Invalid transaction ID.', { expose: false }));
+	       }
+	    }).catch(error=>{
+	         cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
+	    });
+	}
+
+
+	Ezpaypaymenttransactions.remoteMethod(
+          'getTransactionStats', {
+               http: { verb: 'post' },
+               description: ["This request will provide transaction details"],
+               accepts: [
+               	{ arg: 'merchantId',type: 'string',required: true,http: { source: 'query' }},
+               ],
+               returns: { type: 'object', root: true }
+          }
+     );
+
+	Ezpaypaymenttransactions.getTransactionStats = (merchantId, cb) => {
+
+		var rewardCollection = Ezpaypaymenttransactions.getDataSource().connector.collection(Ezpaypaymenttransactions.modelName);
+        var cursorTest = rewardCollection.aggregate([
+            {
+                $match: {
+                    $and: [
+                        {"merchantId": merchantId},
+                    ]
+                }
+            },
+            {
+                "$group": {
+                    "_id": {
+                        transactionStatus: "$transactionStatus",
+                    },
+                    "grand_total": {
+                        "$sum": "$totalAmount"
+                    },
+
+                }
+            }
+        ],function(err,cursor){
+        	if(err){
+        		cb(new HttpErrors.InternalServerError(err, { expose: false }));
+        	}else{
+        		
+        		let retJson = {"amountPending":"0.00","totalCollections":"0.00"};
+
+        		async.each(cursor,function(item,callbk){
+        			if(item["_id"]["transactionStatus"]=="DONE"){
+        				retJson["totalCollections"] = item["grand_total"]
+        			}
+        			if(item["_id"]["transactionStatus"]=="PENDING"){
+        				retJson["amountPending"] = item["grand_total"];
+        			}
+        			callbk();
+        			
+        		},function(){
+        			cb(null,retJson);
+        		});
+        		
+        		
+        	}
+        });
+
+        
+
+	}
+
+
 
 
 

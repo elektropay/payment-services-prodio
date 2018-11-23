@@ -168,6 +168,31 @@ module.exports = function(Ezpaypayees) {
           });
 	}
 
+
+    Ezpaypayees.remoteMethod(
+          'getPayerProfile', {
+               http: { verb: 'post' },
+               description: ["Add Payee"],
+               accepts: [
+                { arg: 'payerId',type: 'string',required: true,http: { source: 'query' }},
+               ],
+               returns: { type: 'object', root: true }
+          }
+     );
+
+  Ezpaypayees.getPayerProfile = (payerId, cb) => {
+    Ezpaypayees.findById(payerId).then(payeeObj=>{
+       if(isValidObject(payeeObj)){
+            cb(null,payeeObj);
+       } else {
+            cb(new HttpErrors.InternalServerError('Invalid Payee ID.', { expose: false }));
+       }
+    }).catch(error=>{
+         cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
+    });
+  }
+
+
 	Ezpaypayees.remoteMethod(
           'removePayees', {
                http: { verb: 'post' },

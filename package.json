@@ -20,7 +20,7 @@
     "loopback": "^3.22.0",
     "loopback-boot": "^2.6.5",
     "loopback-component-explorer": "^6.2.0",
-    "loopback-connector-mongodb": "^3.8.0",
+    "loopback-connector-mongodb": "^1.18.1",
     "notification-service-sdk-prodio": "^1.0.5",
     "payment-module-prodio": "file:../payment-module-prodio/payment-module-prodio-1.0.4.tgz",
     "serve-favicon": "^2.0.1",
