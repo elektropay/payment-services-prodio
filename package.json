@@ -22,7 +22,7 @@
     "loopback-component-explorer": "^6.2.0",
     "loopback-connector-mongodb": "^1.18.1",
     "notification-service-sdk-prodio": "^1.0.5",
-    "payment-module-prodio": "^1.0.7",
+    "payment-module-prodio": "^1.0.8",
     "serve-favicon": "^2.0.1",
     "service-adapter-prodio": "0.0.2",
     "soap": "^0.25.0",
