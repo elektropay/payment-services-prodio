@@ -12,15 +12,22 @@
   },
   "dependencies": {
     "compression": "^1.0.3",
+    "convert-excel-to-json": "^1.5.2",
     "cors": "^2.5.2",
+    "download": "^7.1.0",
     "helmet": "^3.10.0",
+    "integrity-connector-prodio": "0.0.3",
     "loopback": "^3.22.0",
     "loopback-boot": "^2.6.5",
     "loopback-component-explorer": "^6.2.0",
     "loopback-connector-mongodb": "^3.8.0",
     "notification-service-sdk-prodio": "^1.0.5",
+    "payment-module-prodio": "file:../payment-module-prodio/payment-module-prodio-1.0.4.tgz",
     "serve-favicon": "^2.0.1",
-    "strong-error-handler": "^3.0.0"
+    "service-adapter-prodio": "0.0.2",
+    "soap": "^0.25.0",
+    "strong-error-handler": "^3.0.0",
+    "xml2js": "^0.4.19"
   },
   "devDependencies": {
     "eslint": "^3.17.1",

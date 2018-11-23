@@ -1,187 +1,689 @@
 'use strict';
 const HttpErrors = require('http-errors');
-const { 
-     findReplace, 
-     unique, 
-     isValidObject, 
-     isValid, 
-     flattenArray,
-     clean,
-     isArray,
-     isObject,
-     print,
+const {
+    findReplace,
+    unique,
+    isValidObject,
+    isValid,
+    flattenArray,
+    clean,
+    isArray,
+    isObject,
+    print,
 } = require('../../utility/helper');
 let async = require('async');
 
-const notificationSdk = require('notification-service-sdk-prodio');
 let payload = {};
 let url = "";
-const notificationApi  = new notificationSdk(payload,url);
 
+// After installing the below module, create folder "services" inside "server" folder and
+// create paymentsources.json file.
+
+const {
+    Service
+} = require('service-adapter-prodio');
+const paymentAdapter = new Service('payment');
+paymentAdapter.init();
+
+const isNull = function(val) {
+    if (typeof val === 'string') {
+        val = val.trim();
+    }
+    if (val === undefined || val === null || typeof val === 'undefined' || val === '' || val === 'undefined') {
+        return true;
+    }
+    return false;
+};
+
+const convertObjectIdToString = function(objectID) {
+    return objectID.toString().substring(0,8);
+};
 
 module.exports = function(Ezpaymerchants) {
 
-	Ezpaymerchants.remoteMethod(
-          'createMerchant', {
-               http: {
-                    path: '/createMerchant/:userId',
-                    verb: 'post'
-               },
-               description: ["It will register the subscriber as merchant into payment gateway."],
-               accepts: [{
+    Ezpaymerchants.remoteMethod(
+        'testMerchant', {
+            http: {
+                verb: 'post'
+            },
+            description: ["It will register the subscriber as merchant into payment gateway."],
+            accepts: [{
+                arg: 'userInfo',
+                type: 'object',
+                required: true,
+                http: {
+                    source: 'body'
+                }
+            }],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaymerchants.testMerchant = (userInfo, cb) => {
+        const paymentClass = require('payment-module-prodio');
+        const paymentObj = new paymentClass();
+
+        const payload = {
+            "action": "CREATE_MERCHANT",
+            /*(required)*/
+            "meta": {
+                "userId": "bb15dc52-96e2-45w0-b5ab-889aebf7a2e6",
+                /*(required)*/
+                "basic": {
+                    "firstName": "Shashikant",
+                    "lastName": "Sharma",
+                    "email": "dc.shashikant@gmail.com",
+                    "password": "shashikant23",
+                    "mobileNumber": "8097487977",
+                    "dateOfBirth": "MM-DD-YYYY",
+                    "ssn": ""
+                },
+                "business": {
+                    "businessName": "Food On Wheels",
+                    "dbaName": "Food On Wheels",
+                    "taxId": "",
+                    "contactEmail": "dc.shashikant@gmail.com",
+                    "contactNumber": "8097487977",
+                    "addressSameAsUser": "true",
+                    "address": {
+                        "country": "US",
+                        "state": "IL",
+                        "city": "Chicago",
+                        "streetAddress": "Valid Address",
+                        "zipCode": "60606"
+                    }
+                },
+                "billing": {
+                    "accountName": "Shashikant Sharma",
+                    "routingNumber": "123456789",
+                    "accountNumber": "134121314131",
+                    "fedTaxId": "123456789",
+                    "cardHolderName": "Shashikant Sharma",
+                    "creditCardNo": "4356234589794567",
+                    "expiryDate": "12/2020",
+                    "cvv": "345",
+                    "saveCard": "false",
+                    "addressSameAsBusiness": "false",
+                    "address": {
+                        "country": "US",
+                        "state": "IL",
+                        "city": "Chicago",
+                        "streetAddress": "Valid Address",
+                        "zipCode": "60606"
+                    }
+                },
+                "payees": [{
+                        "firstName": "Pawan",
+                        "lastName": "Wagh",
+                        "email": "pawan@prodio.in",
+                        "mobileNumber": "12312443222",
+                        "address": "test address",
+                        "paymentMethod": "CREDIT_CARD"
+                    },
+                    {
+                        "firstName": "Anurag",
+                        "lastName": "Tiwari",
+                        "email": "anurag@prodio.in",
+                        "mobileNumber": "12312443222",
+                        "address": "test address",
+                        "paymentMethod": "CREDIT_CARD"
+                    },
+                    {
+                        "firstName": "Vatsal",
+                        "lastName": "Shah",
+                        "email": "vatsal@prodio.in",
+                        "mobileNumber": "123893222",
+                        "address": "test address",
+                        "paymentMethod": "CREDIT_CARD"
+                    }
+                ]
+            }
+        };
+
+        paymentObj.execute(payload, function(response) {
+            if(typeof response == "string" || typeof response === "string"){
+            	response = JSON.parse(response);
+            }
+            
+            if (!isNull(response.data)) {
+            	let serverResponse = response["data"];
+        		if(typeof serverResponse == "string" || typeof serverResponse === "string"){
+        			serverResponse = JSON.parse(response["data"]);
+        		}
+
+                if (!isNull(serverResponse.error)) {
+                    //Error
+                    //cb(null,response.response.data.error.message);
+                    cb(new HttpErrors.InternalServerError(response.data.error.message, {
+                        expose: false
+                    }));
+                } else {
+                    cb(null, response.data);
+                }
+            } else {
+            	if (!isNull(response["response"])) {
+            		let serverResponse = response["response"]["data"];
+            		if(typeof serverResponse == "string" || typeof serverResponse === "string"){
+            			serverResponse = JSON.parse(response["response"]["data"]);
+            		}
+
+            		let serverResponseError = serverResponse["error"];
+            		if(typeof serverResponseError == "string" || typeof serverResponseError === "string"){
+            			serverResponseError = JSON.parse(serverResponseError["error"]);
+            		}
+
+            		let _msg = isNull(serverResponseError["message"]) ? 'Internal Server Error' : serverResponseError["message"];
+	                cb(new HttpErrors.InternalServerError(_msg, {
+	                    expose: false
+	                }));
+            	}else{
+	                let _msg = isNull(response["data"]["message"]) ? 'Internal Server Error' : response["data"]["message"];
+	                cb(new HttpErrors.InternalServerError(_msg, {
+	                    expose: false
+	                }));
+	            }
+            }
+        });
+    }
+
+
+
+    Ezpaymerchants.remoteMethod(
+        'createMerchant', {
+            http: {
+                verb: 'post'
+            },
+            description: ["It will register the subscriber as merchant into payment gateway."],
+            accepts: [{
                     arg: 'userId',
                     type: 'string',
                     required: true,
                     http: {
-                         source: 'path'
+                        source: 'query'
                     }
-               },{
+                },
+                {
                     arg: 'userInfo',
                     type: 'object',
                     required: true,
                     http: {
-                         source: 'body'
+                        source: 'body'
                     }
-               }],
-               returns: {
-                    type: 'object',
-                    root: true
-               }
-          }
-     );
+                }
+            ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
 
-	Ezpaymerchants.createMerchant = (userId, userInfo, cb) => {
-          const { 
-               user_id = '', 
-               basic = {},
-               payees = {}, 
-               billing = {} 
-          } = userInfo;
-          print(payees);
-          //TODO : Integrating actual Payment Gateway API
+    async function createMerchantPG(payload) {
+        return await paymentAdapter.createMerchant(payload);
+    }
 
-          Ezpaymerchants.findOne({where: {"userId":userId}}).then(user => {
+    Ezpaymerchants.createMerchant = (userId, userInfo, cb) => {
+        let payloadJson = userInfo;
+        if (!isNull(userInfo["meta"])) {
+            payloadJson = userInfo["meta"];
+        }
+        try {
+            const {
+                user_id = "",
+                basic = {},
+                business = {},
+                payees = {},
+                billing = {}
+            } = payloadJson;
+            //console.log("payees==>"+JSON.stringify(payees));
+            //TODO : Integrating actual Payment Gateway API
 
-               if(isValidObject(user)){
-               		funAddUpdatePayees(payees,user["id"]);
-                    return cb(new HttpErrors.NotFound('user already exist', { expose: false }));
-               }else{
-               		let saveMerchant = {
-               			"userId": userId,
-               			"paymentGateway":"CAYAN",
-               			"userInfo": userInfo,
-               			"isActive": true,
-               			"createdAt": new Date(),
-               			"updatedAt": new Date()
-               		};
-               		 
-               		Ezpaymerchants.create(saveMerchant).then(merchantObj => {
-               			funAddUpdatePayees(payees,merchantObj["id"]);
-               			funSendWelcomeEmail(merchantObj["id"],basic);
-               			return cb(null, merchantObj);
-                    }).catch(error => {
-                          print(error);
-                          return cb(new HttpErrors.InternalServerError('Db connection failed', { expose: false }));
+            Ezpaymerchants.findOne({
+                where: {
+                    "userId": convertObjectIdToString(userId)
+                }
+            }).then(user => {
+                if (isValidObject(user)) {
+                    funAddUpdatePayees(payees, user["merchantId"]);
+                    const err = new HttpErrors.NotFound('user already exist', {
+                        expose: false
                     });
-               }
-               
-          }).catch(error => {
-               print(error);
-               return cb(new HttpErrors.InternalServerError('Db connection failed', { expose: false }));
-          });
-    }
+                    cb(err);
 
-    function funSendWelcomeEmail(merchantId,createdUser){
-    	const meta_info = {
-            "name":createdUser.firstName+" "+createdUser.lastName,
-            "email":createdUser.email
+                } else {
+                    createMerchantPG(payloadJson).then(sdkResponse => {
+                        //paymentAdapter.createMerchant(payloadJson, function (sdkResponse) {
+                        let resInfo = sdkResponse;
+
+                        let saveMerchant = {
+                            "userId": convertObjectIdToString(userId),
+                            "paymentGateway": "INTEGRITY",
+                            "userInfo": basic,
+                            "businessInfo": business,
+                            "billingInfo": billing,
+                            "gatewayMerchantInfo":resInfo["body"],
+                            "gatewayMerchantId":resInfo["body"]["merchant"]["mid"],
+                            "isActive": true,
+                            "isApprovedByGateway": false,
+                            "isDeleted": false,
+                            "createdAt": new Date(),
+                            "updatedAt": new Date()
+                        };
+
+                        Ezpaymerchants.create(saveMerchant).then(merchantObj => {
+                            funAddUpdatePayees(payees, merchantObj["id"]);
+                            const rr = {
+                                "merchantId": merchantObj["id"],
+                                "data": resInfo["body"],
+                            };
+                            return cb(null, rr);
+                        }).catch(error => {
+                            let _msg = isNull(error["message"]) ? 'Internal Server Error' : error["message"];
+                            const err = new HttpErrors.InternalServerError(_msg, {
+                                expose: false
+                            });
+                            return cb(err);
+                        });
+                    }).catch(error => {
+                        console.error(error);
+                        let _msg = isNull(error["message"]) ? 'Internal Server Error' : error["message"];
+                        cb(new HttpErrors.InternalServerError(_msg, {
+                            expose: false
+                        }));
+                    })
+                }
+
+            }).catch(error => {
+                let _msg = isNull(error["message"]) ? 'Internal Server Error' : error["message"];
+                const err = new HttpErrors.InternalServerError(_msg, {
+                    expose: false
+                });
+                return cb(err);
+            });
+
+        } catch (error) {
+            let _msg = isNull(error["message"]) ? 'Internal Server Error' : error["message"];
+            cb(new HttpErrors.InternalServerError(_msg, {
+                expose: false
+            }));
         }
-        const payload = {
-            "user_id":merchantId,
-            "meta_info":meta_info,
-            "EVENT_NAME":"CREAT_USER"
+    }
+
+    function funAddUpdatePayees(payees, merchantId) {
+        if (payees.length) {
+            async.each(payees, function(payeeInfo, clb) {
+                let savePayee = {
+                    "firstName": isValid(payeeInfo["firstName"]) ? payeeInfo["firstName"] : "",
+                    "lastName": isValid(payeeInfo["lastName"]) ? payeeInfo["lastName"] : "",
+                    "email": isValid(payeeInfo["email"]) ? String(payeeInfo["email"]).toLowerCase() : "",
+                    "mobileNumber": isValid(payeeInfo["mobileNumber"]) ? payeeInfo["mobileNumber"] : "",
+                    "address": isValid(payeeInfo["address"]) ? payeeInfo["address"] : "",
+                    "paymentMethod": isValid(payeeInfo["paymentMethod"]) ? payeeInfo["paymentMethod"] : "",
+                    "isActive": true,
+                    "createdAt": new Date(),
+                    "updatedAt": new Date()
+                };
+
+                Ezpaymerchants.app.models.ezpayPayees.findOne({
+                    where: {
+                        "email": savePayee["email"]
+                    }
+                }).then(payeeData => {
+                    if (isValidObject(payeeData)) {
+                        clb();
+                        funCreateMerchantPayeeRelation(merchantId, payeeData["payeeId"]);
+                        //return cb(new HttpErrors.NotFound('user already exist', { expose: false }));
+                    } else {
+                        Ezpaymerchants.app.models.ezpayPayees.create(savePayee).then(payeeObj => {
+                            //return cb(null, merchantObj);
+                            funCreateMerchantPayeeRelation(merchantId, payeeObj["payeeId"]);
+                            clb();
+                        }).catch(error => {
+                            print(error);
+                            clb();
+                            //return cb(new HttpErrors.InternalServerError('Db connection failed', { expose: false }));
+                        });
+                    }
+                }).catch(error => {
+                    clb();
+                    print(error);
+                    //return cb(new HttpErrors.InternalServerError('Db connection failed', { expose: false }));
+                });
+            }, function() {
+                print("all payee added..");
+            });
+        } else {
+            print("no payee data available");
         }
-        const baseUrl = `https://47ha2doy85.execute-api.us-east-1.amazonaws.com/dev/`;
-
-        let createdUserData = notificationApi.createUser(payload,baseUrl);
     }
 
-    function funAddUpdatePayees(payees,merchantId){
-    	if(payees.length){
-    		async.each(payees,function(payeeInfo,clb){
-    			let savePayee = {
-    				"firstName": isValid(payeeInfo["firstName"])?payeeInfo["firstName"]:"",
-    				"lastName": isValid(payeeInfo["lastName"])?payeeInfo["lastName"]:"",
-    				"email": isValid(payeeInfo["email"])?String(payeeInfo["email"]).toLowerCase():"",
-    				"mobileNumber": isValid(payeeInfo["mobileNumber"])?payeeInfo["mobileNumber"]:"",
-    				"merchantId": merchantId,
-    				"isActive": true,
-    				"createdAt": new Date(),
-    				"updatedAt": new Date()
-    			};
 
-    			Ezpaymerchants.app.models.ezpayPayees.findOne({where: {"email":savePayee["email"]}}).then(payeeData => {
-    				 if(isValidObject(payeeData)){
-    				 	clb();
-                    	//return cb(new HttpErrors.NotFound('user already exist', { expose: false }));
-		             }else{
-		             	Ezpaymerchants.app.models.ezpayPayees.create(savePayee).then(payeeObj => {
-	               			//return cb(null, merchantObj);
-	               			clb();
-	                    }).catch(error => {
-	                        print(error);
-	                        clb();
-	                          //return cb(new HttpErrors.InternalServerError('Db connection failed', { expose: false }));
-	                    });
-		             }
-    			}).catch(error => {
-    				clb();
-		            print(error);
-		               //return cb(new HttpErrors.InternalServerError('Db connection failed', { expose: false }));
-		        });
-    		},function(){
-    			print("all payee added..");
-    		});
-    	}else{
-    		print("no payee data available");
-    	}
+    function funCreateMerchantPayeeRelation(merchantId, payeeId) {
+        Ezpaymerchants.app.models.merchantPayeesRelation.findOne({
+            where: {
+                "merchantId": merchantId,
+                "payeeId": payeeId
+            }
+        }).then(payeeData => {
+            if (isValidObject(payeeData)) {
+
+            } else {
+
+                let savePayee = {
+                    "merchantId": merchantId,
+                    "payeeId": payeeId,
+                    "isActive": true,
+                    "createdAt": new Date(),
+                };
+
+                Ezpaymerchants.app.models.merchantPayeesRelation.create(savePayee).then(payeeObj => {
+                    //return cb(null, merchantObj);
+                }).catch(error => {
+                    print(error);
+                    //return cb(new HttpErrors.InternalServerError('Db connection failed', { expose: false }));
+                });
+
+            }
+        }).catch(error => {
+            clb();
+            print(error);
+            //return cb(new HttpErrors.InternalServerError('Db connection failed', { expose: false }));
+        });
     }
-
 
     Ezpaymerchants.remoteMethod(
-          'getPayeesListing', {
-               http: {
-                    path: '/getPayees/:merchantId',
-                    verb: 'post'
-               },
-               description: ["It will return the list of payees added by the merchant."],
-               accepts: [{
+        'updateMerchantProfile', {
+            http: {
+                verb: 'post'
+            },
+            description: ["It will register the subscriber as merchant into payment gateway."],
+            accepts: [{
                     arg: 'merchantId',
                     type: 'string',
                     required: true,
                     http: {
-                         source: 'path'
+                        source: 'query'
                     }
-               }],
-               returns: {
-                    type: 'array',
-                    root: true
-               }
-          }
-     );
+                },
+                {
+                    arg: 'merchantInfo',
+                    type: 'object',
+                    required: true,
+                    http: {
+                        source: 'body'
+                    }
+                }
+            ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaymerchants.updateMerchantProfile = (merchantId, merchantInfo, cb) => {
+    	cb(null,merchantInfo);
+    }
+
+
+    Ezpaymerchants.remoteMethod(
+        'getPayeesListing', {
+            http: {
+                verb: 'post'
+            },
+            description: ["It will return the list of payees added by the merchant."],
+            accepts: [{
+                arg: 'merchantId',
+                type: 'string',
+                required: true,
+                http: { source: 'query' }
+            }],
+            returns: {
+                type: 'array',
+                root: true
+            }
+        }
+    );
 
 
     Ezpaymerchants.getPayeesListing = (merchantId, cb) => {
-    	Ezpaymerchants.app.models.ezpayPayees.find({where: {"merchantId":merchantId}}).then(payees => {
-			 print(payees);
-			 if(isValidObject(payees)){
-			 	return cb(null, payees);
-             }else{
-             	return cb(null, payees);
-             }
-		}).catch(error => {
-            return cb(new HttpErrors.InternalServerError('Db connection failed', { expose: false }));
+        Ezpaymerchants.app.models.merchantPayeesRelation.find({
+            include: [{
+                relation: 'Payee'
+            }],
+            where: {
+                "merchantId": merchantId,
+                "isActive": true
+            },
+        }).then(payees => {
+            //print(payees);
+            if (isValidObject(payees)) {
+                return cb(null, payees);
+            } else {
+                return cb(new HttpErrors.InternalServerError('Invalid Merchant Id', {
+	                expose: false
+	            }));
+            }
+        }).catch(error => {
+            return cb(new HttpErrors.InternalServerError('Db connection failed', {
+                expose: false
+            }));
         });
     }
 
+
+    Ezpaymerchants.remoteMethod(
+        'getMerchantActivationStatus', {
+            http: {
+                verb: 'post'
+            },
+            description: ["It will return the merchant activation status as per payment gateway."],
+            accepts: [{
+                arg: 'merchantId',
+                type: 'string',
+                required: true,
+                http: { source: 'query' }
+            }, ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaymerchants.getMerchantActivationStatus = (merchantId, cb) => {
+        Ezpaymerchants.findById(merchantId).then(merchantInfo => {
+
+            if (isValidObject(merchantInfo)) {
+                return cb(null, {
+                    "activationStatus": merchantInfo["isApprovedByGateway"]
+                });
+            } else {
+                return cb(null, {
+                    "activationStatus": false
+                });
+            }
+        }).catch(error => {
+            return cb(new HttpErrors.InternalServerError('Db connection failed', {
+                expose: false
+            }));
+        });
+    }
+
+    Ezpaymerchants.remoteMethod(
+        'getMerchantProfile', {
+            http: {
+                verb: 'post'
+            },
+            description: ["It will return merchant basic details"],
+            accepts: [{
+                arg: 'merchantId',
+                type: 'string',
+                required: true
+            }, ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaymerchants.getMerchantProfile = (merchantId, cb) => {
+        Ezpaymerchants.findById(merchantId).then(merchantInfo => {
+
+            if (isValidObject(merchantInfo)) {
+                return cb(null, merchantInfo);
+            } else {
+                return cb(new HttpErrors.InternalServerError('Invalid Merchant ID.', {
+	                expose: false
+	            }));
+            }
+        }).catch(error => {
+            return cb(new HttpErrors.InternalServerError('Db connection failed', {
+                expose: false
+            }));
+        });
+    }
+
+    Ezpaymerchants.remoteMethod(
+        'deactivateMerchant', {
+            http: {
+                verb: 'post'
+            },
+            description: ["It will deactivate the given merchant account."],
+            accepts: [{
+                arg: 'merchantId',
+                type: 'string',
+                required: true,
+                http: { source: 'query' }
+            }, ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaymerchants.deactivateMerchant = (merchantId, cb) => {
+        Ezpaymerchants.findById(merchantId).then(merchantInfo => {
+
+            if (isValidObject(merchantInfo)) {
+
+                merchantInfo.updateAttributes({
+                    "isActive": false
+                }, function(err, res) {
+                    if (err) {
+                        return cb(new HttpErrors.InternalServerError('Db connection failed', {
+                            expose: false
+                        }));
+                    } else {
+                        cb(null, {
+                            "success": true
+                        });
+                    }
+                });
+            } else {
+                return cb(new HttpErrors.InternalServerError('Invalid merchant id.', {
+                    expose: false
+                }));
+            }
+        }).catch(error => {
+            return cb(new HttpErrors.InternalServerError('Db connection failed', {
+                expose: false
+            }));
+        });
+    }
+
+
+    Ezpaymerchants.remoteMethod(
+        'removeMerchant', {
+            http: {
+                verb: 'post'
+            },
+            description: ["It will remove the given merchant account from payment gateway."],
+            accepts: [{
+                arg: 'merchantId',
+                type: 'string',
+                required: true,
+                http: { source: 'query' }
+            }, ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaymerchants.removeMerchant = (merchantId, cb) => {
+        Ezpaymerchants.findById(merchantId).then(merchantInfo => {
+
+            if (isValidObject(merchantInfo)) {
+
+                merchantInfo.updateAttributes({
+                    "isDeleted": true
+                }, function(err, res) {
+                    if (err) {
+                        return cb(new HttpErrors.InternalServerError('Db connection failed', {
+                            expose: false
+                        }));
+                    } else {
+                        cb(null, {
+                            "success": true
+                        });
+                    }
+                });
+            } else {
+                return cb(new HttpErrors.InternalServerError('Invalid merchant id.', {
+                    expose: false
+                }));
+            }
+        }).catch(error => {
+            return cb(new HttpErrors.InternalServerError('Db connection failed', {
+                expose: false
+            }));
+        });
+    }
+
+
+    Ezpaymerchants.remoteMethod(
+        'getMerchantFromUserId', {
+            http: {
+                verb: 'post'
+            },
+            description: ["It will fetch merchant info from user id."],
+            accepts: [{
+                arg: 'userId',
+                type: 'string',
+                required: true,
+                http: { source: 'query' }
+            }, ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaymerchants.getMerchantFromUserId = (userId, cb) => {
+        Ezpaymerchants.findOne({
+            where: {
+                "userId": convertObjectIdToString(userId)
+            }
+        }).then(user => {
+            if (isValidObject(user)) {
+                cb(null, {"merchantId":user["merchantId"]});
+            } else {
+                return cb(new HttpErrors.NotFound('User id does not exists', {
+                    expose: false
+                }));
+            }
+        }).catch(error => {
+            return cb(new HttpErrors.InternalServerError('Db connection failed', {
+                expose: false
+            }));
+        });
+    }
 };

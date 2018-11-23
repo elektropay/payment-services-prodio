@@ -8,8 +8,8 @@
   },
   "properties": {
     "merchantId": {
-      "id": true,
       "type": "string",
+      "id": true,
       "defaultFn": "uuidv4"
     },
     "userId": {
@@ -22,6 +22,14 @@
       "type": "string"
     },
     "isActive": {
+      "type": "boolean",
+      "default": false
+    },
+    "isDeleted": {
+      "type": "boolean",
+      "default": false
+    },
+    "isApprovedByGateway": {
       "type": "boolean",
       "default": false
     },

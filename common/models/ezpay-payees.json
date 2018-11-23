@@ -8,8 +8,8 @@
   },
   "properties": {
     "payeeId": {
-      "id": true,
       "type": "string",
+      "id": true,
       "defaultFn": "uuidv4"
     },
     "firstName": {
@@ -24,7 +24,10 @@
     "mobileNumber": {
       "type": "string"
     },
-    "merchantId": {
+    "address": {
+      "type": "string"
+    },
+    "paymentMethod": {
       "type": "string"
     },
     "isActive": {
@@ -40,16 +43,6 @@
   },
   "validations": [],
   "relations": {
-    "Merchant": {
-      "type": "belongsTo",
-      "model": "ezpayMerchants",
-      "property": "merchantId",
-      "options": {
-        "validate": true,
-        "persistent": true,
-        "nestRemoting": false
-      }
-    }
   },
   "acls": [],
   "methods": {}

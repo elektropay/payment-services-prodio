@@ -7,21 +7,50 @@
     "validateUpsert": true
   },
   "properties": {
-    "payeeId": {
+    "transactionId": {
+      "type": "string",
+      "id": true,
+      "defaultFn": "uuidv4"
+    },
+    "payerId": {
       "type": "string"
     },
     "merchantId": {
       "type": "string"
     },
+    "totalAmount":{
+      "type":"string"
+    },
+    "metaData":{
+      "type":"object"
+    },
     "transactionStatus": {
       "type": "string"
     },
+    "isActive":{
+      "type":"boolean",
+      "default":true
+    },
     "createdAt": {
-      "type": "string"
+      "type": "date"
+    },
+    "paymentDate":{
+      "type":"date"
     }
   },
   "validations": [],
-  "relations": {},
+  "relations": {
+    "Payer": {
+      "type": "belongsTo",
+      "model": "ezpayPayees",
+      "foreignKey": "payerId"
+    },
+    "Merchant": {
+      "type": "belongsTo",
+      "model": "ezpayMerchants",
+      "foreignKey": "merchantId"
+    }
+  },
   "acls": [],
   "methods": {}
 }
