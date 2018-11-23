@@ -62,6 +62,7 @@ module.exports = function(Ezpaypayees) {
                                                   funCreateMerchantPayeeRelation(merchantId,payeeData["payeeId"],cb);
                                              }else{
                                                   let savePayee = {
+                                                       "merchantId":merchantId,
                                                        "firstName": isValid(payeeInfo["firstName"]) ? payeeInfo["firstName"] : "",
                                                        "lastName": isValid(payeeInfo["lastName"]) ? payeeInfo["lastName"] : "",
                                                        "email": isValid(payeeInfo["email"]) ? String(payeeInfo["email"]).toLowerCase() : "",
@@ -74,7 +75,7 @@ module.exports = function(Ezpaypayees) {
                                                    };
 
                                                   Ezpaypayees.create(savePayee).then(payeeObj => {
-                                                       cb(null,{"success":true,"isAlreadyExists":false});
+                                                       cb(null,{"success":true,"isAlreadyExists":false,"payerId":payeeObj["payeeId"]});
                                                   }).catch(error => {
                                                        cb(new HttpErrors.InternalServerError('Error while creating new payee.', { expose: false }));
                                                   });
@@ -157,7 +158,7 @@ module.exports = function(Ezpaypayees) {
                          cb(null,{"success":true});
                     }).catch(error =>{
                          cb(new HttpErrors.InternalServerError('Server Error, '+JSON.stringify(error), { expose: false }));
-                    })
+                    });
 
                }else{
                    cb(new HttpErrors.InternalServerError('Invalid Payee Id.', {expose: false})); 
