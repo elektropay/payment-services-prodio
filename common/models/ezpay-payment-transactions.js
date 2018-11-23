@@ -201,7 +201,7 @@ module.exports = function(Ezpaypaymenttransactions) {
 	       if(isValidObject(transObj)){
 	            cb(null,transObj);
 	       } else {
-	            cb(new HttpErrors.InternalServerError('Invalid transaction ID.', { expose: false }));
+	            cb(null,transObj);
 	       }
 	    }).catch(error=>{
 	         cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
