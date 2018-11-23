@@ -395,9 +395,7 @@ module.exports = function(Ezpaymerchants) {
             if (isValidObject(payees)) {
                 return cb(null, payees);
             } else {
-                return cb(new HttpErrors.InternalServerError('Invalid Merchant Id', {
-	                expose: false
-	            }));
+                return cb(null, payees);
             }
         }).catch(error => {
             return cb(new HttpErrors.InternalServerError('Db connection failed', {

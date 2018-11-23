@@ -151,7 +151,7 @@ module.exports = function(Ezpaypaymenttransactions) {
         	if(isValidObject(transactions)){
         		cb(null,transactions);
         	}else{
-        		cb(new HttpErrors.InternalServerError('No Transactions Found.', { expose: false }));
+        		cb(null,transactions);
         	}
         }).catch(error=>{
         	cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
@@ -176,7 +176,7 @@ module.exports = function(Ezpaypaymenttransactions) {
         	if(isValidObject(transactions)){
         		cb(null,transactions);
         	}else{
-        		cb(new HttpErrors.InternalServerError('No Transactions Found.', { expose: false }));
+        		cb(null,transactions);
         	}
         }).catch(error=>{
         	cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
