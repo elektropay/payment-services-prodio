@@ -158,6 +158,31 @@ module.exports = function(Ezpaypaymenttransactions) {
         })
 	}
 
+	
+	Ezpaypaymenttransactions.remoteMethod(
+          'getNonPayersListing', {
+               http: { verb: 'post' },
+               description: ["This request will initiate a payment request transaction"],
+               accepts: [
+               	{ arg: 'merchantId',type: 'string',required: true,http: { source: 'query' }},
+               ],
+               returns: { type: 'object', root: true }
+          }
+     );
+
+	Ezpaypaymenttransactions.getNonPayersListing = (merchantId, cb) => {
+		
+        Ezpaypaymenttransactions.find({"where":{"merchantId":merchantId,"transactionStatus":"PENDING"},"include":[{relation:'Payer'}],"order":"createdAt desc"}).then(transactions=>{
+        	if(isValidObject(transactions)){
+        		cb(null,transactions);
+        	}else{
+        		cb(new HttpErrors.InternalServerError('No Transactions Found.', { expose: false }));
+        	}
+        }).catch(error=>{
+        	cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
+        })
+	}
+
 
 	Ezpaypaymenttransactions.remoteMethod(
           'getTransactionDetails', {

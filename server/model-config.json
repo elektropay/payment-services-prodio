@@ -46,13 +46,7 @@
     "options": {
       "remoting": {
         "sharedMethods": {
-          "*": false,
-          "addPayee": true,
-          "editPayee": true,
-          "removePayees": true,
-          "importPayees": true,
-          "addCardForPayee": true,
-          "removeCard": true
+          "*": true
         }
       }
     }

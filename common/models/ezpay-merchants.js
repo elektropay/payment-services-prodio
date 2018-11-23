@@ -65,88 +65,20 @@ module.exports = function(Ezpaymerchants) {
     Ezpaymerchants.testMerchant = (userInfo, cb) => {
         const paymentClass = require('payment-module-prodio');
         const paymentObj = new paymentClass();
+        let payload = {
+                "action": "GET_PAYERS_LISTING",
+                "meta": {
+                    "merchantId":"1c1c317e-c86b-4daa-bf4c-94445672a0ea"  
+                }
+            };
 
-        const payload = {
-            "action": "CREATE_MERCHANT",
-            /*(required)*/
-            "meta": {
-                "userId": "bb15dc52-96e2-45w0-b5ab-889aebf7a2e6",
-                /*(required)*/
-                "basic": {
-                    "firstName": "Shashikant",
-                    "lastName": "Sharma",
-                    "email": "dc.shashikant@gmail.com",
-                    "password": "shashikant23",
-                    "mobileNumber": "8097487977",
-                    "dateOfBirth": "MM-DD-YYYY",
-                    "ssn": ""
-                },
-                "business": {
-                    "businessName": "Food On Wheels",
-                    "dbaName": "Food On Wheels",
-                    "taxId": "",
-                    "contactEmail": "dc.shashikant@gmail.com",
-                    "contactNumber": "8097487977",
-                    "addressSameAsUser": "true",
-                    "address": {
-                        "country": "US",
-                        "state": "IL",
-                        "city": "Chicago",
-                        "streetAddress": "Valid Address",
-                        "zipCode": "60606"
-                    }
-                },
-                "billing": {
-                    "accountName": "Shashikant Sharma",
-                    "routingNumber": "123456789",
-                    "accountNumber": "134121314131",
-                    "fedTaxId": "123456789",
-                    "cardHolderName": "Shashikant Sharma",
-                    "creditCardNo": "4356234589794567",
-                    "expiryDate": "12/2020",
-                    "cvv": "345",
-                    "saveCard": "false",
-                    "addressSameAsBusiness": "false",
-                    "address": {
-                        "country": "US",
-                        "state": "IL",
-                        "city": "Chicago",
-                        "streetAddress": "Valid Address",
-                        "zipCode": "60606"
-                    }
-                },
-                "payees": [{
-                        "firstName": "Pawan",
-                        "lastName": "Wagh",
-                        "email": "pawan@prodio.in",
-                        "mobileNumber": "12312443222",
-                        "address": "test address",
-                        "paymentMethod": "CREDIT_CARD"
-                    },
-                    {
-                        "firstName": "Anurag",
-                        "lastName": "Tiwari",
-                        "email": "anurag@prodio.in",
-                        "mobileNumber": "12312443222",
-                        "address": "test address",
-                        "paymentMethod": "CREDIT_CARD"
-                    },
-                    {
-                        "firstName": "Vatsal",
-                        "lastName": "Shah",
-                        "email": "vatsal@prodio.in",
-                        "mobileNumber": "123893222",
-                        "address": "test address",
-                        "paymentMethod": "CREDIT_CARD"
-                    }
-                ]
-            }
-        };
 
         paymentObj.execute(payload, function(response) {
             if(typeof response == "string" || typeof response === "string"){
             	response = JSON.parse(response);
             }
+
+            console.log(response);
             
             if (!isNull(response.data)) {
             	let serverResponse = response["data"];
