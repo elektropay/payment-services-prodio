@@ -254,7 +254,7 @@ module.exports = function(Ezpaypaymenttransactions) {
         		let retJson = {"amountPending":"0.00","totalCollections":"0.00"};
 
         		async.each(cursor,function(item,callbk){
-        			if(item["_id"]["transactionStatus"]=="DONE"){
+        			if(item["_id"]["transactionStatus"]=="DONE" || item["_id"]["transactionStatus"]=="PAID"){
         				retJson["totalCollections"] = item["grand_total"]
         			}
         			if(item["_id"]["transactionStatus"]=="PENDING"){
