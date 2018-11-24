@@ -110,7 +110,7 @@ module.exports = function(Ezpaypayees) {
                     "createdAt": new Date(),
                 };
 
-                Ezpaymerchants.app.models.merchantPayeesRelation.create(savePayee).then(payeeObj => {
+                Ezpaypayees.app.models.merchantPayeesRelation.create(savePayee).then(payeeObj => {
                     //return cb(null, merchantObj);
                     cb(null,{"success":true,"isAlreadyExists":true,"payeeId":payeeId});
                 }).catch(error => {
