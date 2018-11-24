@@ -100,7 +100,7 @@ module.exports = function(Ezpaypayees) {
               }
           }).then(payeeData => {
               if (isValidObject(payeeData)) {
-                    cb(null,{"success":true,"isAlreadyExists":true,"payeeId":payeeId});
+                    cb(null,{"success":true,"isAlreadyExists":true,"payerId":payeeId});
               }else{
 
                 let savePayee = {
@@ -112,7 +112,7 @@ module.exports = function(Ezpaypayees) {
 
                 Ezpaypayees.app.models.merchantPayeesRelation.create(savePayee).then(payeeObj => {
                     //return cb(null, merchantObj);
-                    cb(null,{"success":true,"isAlreadyExists":true,"payeeId":payeeId});
+                    cb(null,{"success":true,"isAlreadyExists":true,"payerId":payeeId});
                 }).catch(error => {
                     print(error);
                     cb(new HttpErrors.InternalServerError('Server Error While Adding Payee.', { expose: false }));
