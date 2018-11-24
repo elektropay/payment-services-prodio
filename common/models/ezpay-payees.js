@@ -75,7 +75,7 @@ module.exports = function(Ezpaypayees) {
                                                    };
 
                                                   Ezpaypayees.create(savePayee).then(payeeObj => {
-                                                    funCreateMerchantPayeeRelation(merchantId,payeeObj["payeeId"],null);
+                                                    funCreateMerchantPayeeRelation(merchantId,payeeObj["payeeId"],cb);
                                                        //cb(null,{"success":true,"isAlreadyExists":false,"payerId":payeeObj["payeeId"]});
                                                   }).catch(error => {
                                                        cb(new HttpErrors.InternalServerError('Error while creating new payee.', { expose: false }));
