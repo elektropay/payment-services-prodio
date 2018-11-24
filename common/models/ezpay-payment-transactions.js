@@ -109,11 +109,15 @@ module.exports = function(Ezpaypaymenttransactions) {
            if(isValidObject(payeeInfo)){
                 Ezpaypaymenttransactions.findById(transactionId).then(transInfo=>{
                      if(isValidObject(transInfo)){
+                     	if(transInfo["transactionStatus"]=="PAID"){
+                     		cb(new HttpErrors.InternalServerError('You have Already Paid for the transaction!', { expose: false }));
+                     	}else{
                           transInfo.updateAttributes({"transactionStatus":"PAID","paymentDate":new Date()}).then(updatedCount=>{
                                cb(null,{"success":true});
                           }).catch(error=>{
                                cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
                           });
+                      }
                      }else{
                           cb(new HttpErrors.InternalServerError('Invalid Transaction ID.', { expose: false }));
                      }
