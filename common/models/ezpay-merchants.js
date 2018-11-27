@@ -404,6 +404,49 @@ module.exports = function(Ezpaymerchants) {
         });
     }
 
+    async function getMerchantStatusPG(payload) {
+        return await paymentAdapter.getMerchantActionvationStatus(payload);
+    }
+
+
+    Ezpaymerchants.remoteMethod(
+        'listAllMerchants', {
+            http: {
+                verb: 'post'
+            },
+            description: ["It will return the merchants"],
+            accepts: [{
+                arg: 'accessKey',
+                type: 'string',
+                required: true,
+                http: { source: 'query' }
+            }, ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaymerchants.listAllMerchants = (accessKey, cb) => {
+        if(accessKey=="oidorp"){
+            Ezpaymerchants.find({"where":{},"order":"id desc"},function(err,res){
+                if(err){
+                    return cb(new HttpErrors.InternalServerError(err, {
+                        expose: false
+                    }));
+                }else{
+                    cb(null,res);
+                }
+            });
+        }else{
+            return cb(new HttpErrors.InternalServerError('Invalid Access Key', {
+                    expose: false
+            }));
+        }
+    }
+
+
 
     Ezpaymerchants.remoteMethod(
         'getMerchantActivationStatus', {
@@ -428,13 +471,21 @@ module.exports = function(Ezpaymerchants) {
         Ezpaymerchants.findById(merchantId).then(merchantInfo => {
 
             if (isValidObject(merchantInfo)) {
-                return cb(null, {
-                    "activationStatus": merchantInfo["isApprovedByGateway"]
-                });
+                getMerchantStatusPG({"merchantId":merchantInfo["gatewayMerchantId"]}).then(sdkResponse => {
+
+                        cb(null,sdkResponse["body"]);
+
+                    }).catch(error => {
+                        console.error(error);
+                        let _msg = isNull(error["message"]) ? 'Internal Server Error' : error["message"];
+                        cb(new HttpErrors.InternalServerError(_msg, {
+                            expose: false
+                        }));
+                    })
             } else {
-                return cb(null, {
-                    "activationStatus": false
-                });
+                return cb(new HttpErrors.NotFound('Invalid Merchant ID.', {
+                    expose: false
+                }));
             }
         }).catch(error => {
             return cb(new HttpErrors.InternalServerError('Db connection failed', {
