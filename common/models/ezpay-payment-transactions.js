@@ -162,6 +162,36 @@ module.exports = function(Ezpaypaymenttransactions) {
         })
 	}
 
+    Ezpaypaymenttransactions.remoteMethod(
+          'getPayersTransactions', {
+               http: { verb: 'post' },
+               description: ["This request will initiate a payment request transaction"],
+               accepts: [
+                { arg: 'payerId',type: 'string',required: true,http: { source: 'query' }},
+                { arg: 'pageNo',type: 'string',required: true,http: { source: 'query' }},
+                { arg: 'filterCriteria',type: 'object', required: false, http: { source: 'body' }}
+               ],
+               returns: { type: 'object', root: true }
+          }
+     );
+
+  Ezpaypaymenttransactions.getPayersTransactions = (payerId,pageNo,filterCriteria, cb) => {
+    if (!isNull(filterCriteria["meta"])) {
+            filterCriteria = filterCriteria["meta"]["filterCriteria"];
+        }
+
+        Ezpaypaymenttransactions.find({"where":{"payerId":payerId},"include":[{relation:'Payer'}],"order":"createdAt desc"}).then(transactions=>{
+          if(isValidObject(transactions)){
+            cb(null,transactions);
+          }else{
+            cb(null,transactions);
+          }
+        }).catch(error=>{
+          cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
+        })
+  }
+
+
 	
 	Ezpaypaymenttransactions.remoteMethod(
           'getNonPayersListing', {

@@ -12,6 +12,12 @@ const {
     print,
 } = require('../../utility/helper');
 
+const {
+    Service
+} = require('service-adapter-prodio');
+const paymentAdapter = new Service('payment');
+paymentAdapter.init();
+
 const isNull = function(val) {
     if (typeof val === 'string') {
         val = val.trim();
@@ -68,12 +74,25 @@ module.exports = function(Ezpaypayees) {
                                          "updatedAt": new Date()
                                      };
 
-                                    Ezpaypayees.create(savePayee).then(payeeObj => {
-                                      funCreateMerchantPayeeRelation(merchantId,payeeObj["payeeId"],cb);
-                                         //cb(null,{"success":true,"isAlreadyExists":false,"payerId":payeeObj["payeeId"]});
+                                    let _payload = {"payeeInfo":savePayee,"merchantInfo":merchantInfo};
+
+                                    funCreatePayerInGateway(_payload).then(sdkResponse => {
+
+                                      savePayee["gatewayBuyerId"] = sdkResponse["body"]["gatewayBuyerId"];
+                                      Ezpaypayees.create(savePayee).then(payeeObj => {
+                                        
+                                        funCreateMerchantPayeeRelation(merchantId,payeeObj["payeeId"],cb);
+                                           //cb(null,{"success":true,"isAlreadyExists":false,"payerId":payeeObj["payeeId"]});
+                                      }).catch(error => {
+                                           cb(new HttpErrors.InternalServerError('Error while creating new payee.', { expose: false }));
+                                      });
                                     }).catch(error => {
-                                         cb(new HttpErrors.InternalServerError('Error while creating new payee.', { expose: false }));
-                                    });
+                                        console.error(error);
+                                        let _msg = isNull(error["message"]) ? 'Internal Server Error' : error["message"];
+                                        cb(new HttpErrors.InternalServerError(_msg, {
+                                            expose: false
+                                        }));
+                                    })
                                                   
                                    // Ezpaypayees.findOne({"where":{"mobileNumber":payeeInfo["mobileNumber"]}},function(err,payeeData){
                                    //      if(err){
@@ -95,6 +114,11 @@ module.exports = function(Ezpaypayees) {
                }
           });
 	}
+
+
+  async function funCreatePayerInGateway(payload) {
+        return await paymentAdapter.createBuyer(payload);
+  }
 
      function funCreateMerchantPayeeRelation(merchantId,payeeId,cb){
         Ezpaypayees.app.models.merchantPayeesRelation.findOne({
