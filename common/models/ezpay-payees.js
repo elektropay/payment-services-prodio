@@ -117,7 +117,7 @@ module.exports = function(Ezpaypayees) {
 
 
   async function funCreatePayerInGateway(payload) {
-        return await paymentAdapter.createBuyer(payload);
+        return await paymentAdapter.integrity.createBuyer(payload);
   }
 
      function funCreateMerchantPayeeRelation(merchantId,payeeId,cb){
