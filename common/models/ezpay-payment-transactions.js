@@ -13,6 +13,10 @@ const {
     print,
 } = require('../../utility/helper');
 
+const {
+    paymentAdapter
+} = require('../../server/moduleImporter');
+
 const isNull = function(val) {
     if (typeof val === 'string') {
         val = val.trim();
@@ -85,6 +89,10 @@ module.exports = function(Ezpaypaymenttransactions) {
 		});
 	}
 
+  async function funMakePaymentInGateway(payload) {
+        return await paymentAdapter.makePayment(payload);
+  }
+
 
 	Ezpaypaymenttransactions.remoteMethod(
           'processPayment', {
@@ -112,11 +120,39 @@ module.exports = function(Ezpaypaymenttransactions) {
                      	if(transInfo["transactionStatus"]=="PAID"){
                      		cb(new HttpErrors.InternalServerError('You have Already Paid for the transaction!', { expose: false }));
                      	}else{
-                          transInfo.updateAttributes({"transactionStatus":"PAID","paymentDate":new Date()}).then(updatedCount=>{
-                               cb(null,{"success":true});
+
+                        if(!isNull(cardId)){
+                          //direct take payment from card id
+                          Ezpaypaymenttransactions.app.models.savedCardsMetaData.findById(cardId).then(cardDataInfo=>{
+                            let _payload = {"cardInfo":cardDataInfo,"payerInfo":payeeInfo,"paymentInfo":transInfo};
+                            funMakePaymentInGateway(_payload).then(sdkResponse=>{
+                                transInfo.updateAttributes({"gatewayTransactionId":sdkResponse["body"]["gatewayTransactionId"],"transactionStatus":"PAID","paymentDate":new Date()}).then(updatedCount=>{
+                                     cb(null,updatedCount);
+                                }).catch(error=>{
+                                     cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
+                                });
+                            }).catch(error => {
+                                console.error(error);
+                                let _msg = isNull(error["message"]) ? 'Internal Server Error' : error["message"];
+                                cb(new HttpErrors.InternalServerError(_msg, {
+                                    expose: false
+                                }));
+                            })
                           }).catch(error=>{
                                cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
                           });
+                          
+                        }else{
+                          //check if user wants to save card or not
+                          if(cardInfo["saveCard"]){
+                            //first save card and then take payment from card id
+                          }else{
+                            //take direct payment using card info
+                          }
+                        }
+
+
+                          
                       }
                      }else{
                           cb(new HttpErrors.InternalServerError('Invalid Transaction ID.', { expose: false }));
@@ -243,6 +279,66 @@ module.exports = function(Ezpaypaymenttransactions) {
 	}
 
 
+  Ezpaypaymenttransactions.remoteMethod(
+          'getPayerTransactionStats', {
+               http: { verb: 'post' },
+               description: ["This request will provide transaction details"],
+               accepts: [
+                { arg: 'payerId',type: 'string',required: true,http: { source: 'query' }},
+               ],
+               returns: { type: 'object', root: true }
+          }
+     );
+
+  Ezpaypaymenttransactions.getPayerTransactionStats = (payerId, cb) => {
+
+    var rewardCollection = Ezpaypaymenttransactions.getDataSource().connector.collection(Ezpaypaymenttransactions.modelName);
+        var cursorTest = rewardCollection.aggregate([
+            {
+                $match: {
+                    $and: [
+                        {"payerId": payerId},
+                    ]
+                }
+            },
+            {
+                "$group": {
+                    "_id": {
+                        transactionStatus: "$transactionStatus",
+                    },
+                    "grand_total": {
+                        "$sum": "$totalAmount"
+                    },
+
+                }
+            }
+        ],function(err,cursor){
+          if(err){
+            cb(new HttpErrors.InternalServerError(err, { expose: false }));
+          }else{
+            
+            let retJson = {"amountPending":"0.00","totalCollections":"0.00"};
+
+            async.each(cursor,function(item,callbk){
+              if(item["_id"]["transactionStatus"]=="DONE" || item["_id"]["transactionStatus"]=="PAID"){
+                retJson["totalCollections"] = item["grand_total"]
+              }
+              if(item["_id"]["transactionStatus"]=="PENDING"){
+                retJson["amountPending"] = item["grand_total"];
+              }
+              callbk();
+              
+            },function(){
+              cb(null,retJson);
+            });
+            
+            
+          }
+        });
+
+  }
+
+
 	Ezpaypaymenttransactions.remoteMethod(
           'getTransactionStats', {
                http: { verb: 'post' },
@@ -299,8 +395,6 @@ module.exports = function(Ezpaypaymenttransactions) {
         		
         	}
         });
-
-        
 
 	}
 

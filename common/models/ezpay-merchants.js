@@ -664,4 +664,35 @@ module.exports = function(Ezpaymerchants) {
             }));
         });
     }
+
+
+    Ezpaymerchants.remoteMethod(
+        'getAllActiveMerchants', {
+            http: {
+                verb: 'get'
+            },
+            description: ["It will return merchant basic details"],
+            accepts: [],
+            returns: {
+                type: 'array',
+                root: true
+            }
+        }
+    );
+
+    Ezpaymerchants.getAllActiveMerchants = (cb) => {
+        Ezpaymerchants.find({"where":{"isActive":true}}).then(merchantListing => {
+
+            if (isValidObject(merchantListing)) {
+                return cb(null, merchantListing);
+            } else {
+                return cb(null, merchantListing);
+            }
+        }).catch(error => {
+            return cb(new HttpErrors.InternalServerError('Db connection failed', {
+                expose: false
+            }));
+        });
+    }
+
 };
