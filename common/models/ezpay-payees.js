@@ -12,11 +12,7 @@ const {
     print,
 } = require('../../utility/helper');
 
-const {
-    Service
-} = require('service-adapter-prodio');
-const paymentAdapter = new Service('payment');
-paymentAdapter.init();
+const {paymentAdapter} = require('../../server/moduleImporter');
 
 const isNull = function(val) {
     if (typeof val === 'string') {
@@ -47,6 +43,7 @@ module.exports = function(Ezpaypayees) {
         if (!isNull(payeeInfo["meta"])) {
             payeeInfo = payeeInfo["meta"]["payerInfo"];
         }
+
 
           Ezpaypayees.app.models.ezpayMerchants.findById(merchantId,function(err,merchantInfo){
                if(err){
@@ -117,7 +114,7 @@ module.exports = function(Ezpaypayees) {
 
 
   async function funCreatePayerInGateway(payload) {
-        return await paymentAdapter.integrity.createBuyer(payload);
+        return await paymentAdapter.createPayer(payload);
   }
 
      function funCreateMerchantPayeeRelation(merchantId,payeeId,cb){

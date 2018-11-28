@@ -19,11 +19,8 @@ let url = "";
 // After installing the below module, create folder "services" inside "server" folder and
 // create paymentsources.json file.
 
-const {
-    Service
-} = require('service-adapter-prodio');
-const paymentAdapter = new Service('payment');
-paymentAdapter.init();
+const {paymentAdapter} = require('../../server/moduleImporter');
+
 
 const isNull = function(val) {
     if (typeof val === 'string') {
