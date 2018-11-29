@@ -323,6 +323,68 @@ module.exports = function(Ezpaymerchants) {
         });
     }
 
+
+    Ezpaymerchants.remoteMethod(
+        'attachPayerWithMerchant', {
+            http: {
+                verb: 'post'
+            },
+            description: ["It will register the subscriber as merchant into payment gateway."],
+            accepts: [{
+                    arg: 'merchantId',
+                    type: 'string',
+                    required: true,
+                    http: {
+                        source: 'query'
+                    }
+                },
+                {
+                    arg: 'payerId',
+                    type: 'object',
+                    required: true,
+                    http: {
+                        source: 'query'
+                    }
+                }
+            ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaymerchants.attachPayerWithMerchant = (merchantId, payerId, cb) => {
+        Ezpaymerchants.findById(merchantId).then(merchantInfo => {
+
+            if (isValidObject(merchantInfo)) {
+                Ezpaymerchants.app.models.ezpayPayees.findById(payerId).then(payeeInfo=>{
+                    if(isValidObject(payeeInfo)){
+                        funCreateMerchantPayeeRelation(merchantId,payerId);
+                        cb(null,{"success":true});
+                    }else{
+                       return cb(new HttpErrors.InternalServerError('Invalid Payer Id', {
+                            expose: false
+                        })); 
+                    }
+                }).catch(error => {
+                    return cb(new HttpErrors.InternalServerError('Internal Server Error', {
+                        expose: false
+                    }));
+                });
+            }else{
+                return cb(new HttpErrors.InternalServerError('Invalid Merchant Id', {
+                    expose: false
+                }));
+            }
+        }).catch(error => {
+            return cb(new HttpErrors.InternalServerError('Internal Server Error', {
+                expose: false
+            }));
+        });
+    }
+
+
     Ezpaymerchants.remoteMethod(
         'updateMerchantProfile', {
             http: {
@@ -356,6 +418,50 @@ module.exports = function(Ezpaymerchants) {
     Ezpaymerchants.updateMerchantProfile = (merchantId, merchantInfo, cb) => {
     	cb(null,merchantInfo);
     }
+
+    Ezpaymerchants.remoteMethod(
+        'getMerchantListingForPayer', {
+            http: {
+                verb: 'post'
+            },
+            description: ["It will return the list of payees added by the merchant."],
+            accepts: [{
+                arg: 'payerId',
+                type: 'string',
+                required: true,
+                http: { source: 'query' }
+            }],
+            returns: {
+                type: 'array',
+                root: true
+            }
+        }
+    );
+
+
+    Ezpaymerchants.getMerchantListingForPayer = (payerId, cb) => {
+        Ezpaymerchants.app.models.merchantPayeesRelation.find({
+            include: [{
+                relation: 'Merchant'
+            }],
+            where: {
+                "payerId": payerId,
+                "isActive": true
+            },
+        }).then(merchants => {
+            //print(merchants); MH181128V6961754
+            if (isValidObject(merchants)) {
+                return cb(null, merchants);
+            } else {
+                return cb(null, merchants);
+            }
+        }).catch(error => {
+            return cb(new HttpErrors.InternalServerError('Internal Server Error', {
+                expose: false
+            }));
+        });
+    }
+
 
 
     Ezpaymerchants.remoteMethod(

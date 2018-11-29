@@ -126,7 +126,7 @@ module.exports = function(Ezpaypaymenttransactions) {
                           Ezpaypaymenttransactions.app.models.savedCardsMetaData.findById(cardId).then(cardDataInfo=>{
                             let _payload = {"cardInfo":cardDataInfo,"payerInfo":payeeInfo,"paymentInfo":transInfo};
                             funMakePaymentInGateway(_payload).then(sdkResponse=>{
-                                transInfo.updateAttributes({"gatewayTransactionId":sdkResponse["body"]["gatewayTransactionId"],"transactionStatus":"PAID","paymentDate":new Date()}).then(updatedCount=>{
+                                transInfo.updateAttributes({"gatewayTransactionId":sdkResponse["body"]["gatewayTransactionId"],"cardId":cardId,"transactionStatus":"PAID","paymentDate":new Date()}).then(updatedCount=>{
                                      cb(null,updatedCount);
                                 }).catch(error=>{
                                      cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
@@ -148,6 +148,21 @@ module.exports = function(Ezpaypaymenttransactions) {
                             //first save card and then take payment from card id
                           }else{
                             //take direct payment using card info
+                            let _payload = {"cardInfo":cardInfo,"payerInfo":payeeInfo,"paymentInfo":transInfo};
+                            funMakePaymentInGateway(_payload).then(sdkResponse=>{
+                                transInfo.updateAttributes({"gatewayTransactionId":sdkResponse["body"]["gatewayTransactionId"],"cardId":cardId,"transactionStatus":"PAID","paymentDate":new Date()}).then(updatedCount=>{
+                                     cb(null,updatedCount);
+                                }).catch(error=>{
+                                     cb(new HttpErrors.InternalServerError('Server Error', { expose: false }));
+                                });
+                            }).catch(error => {
+                                console.error(error);
+                                let _msg = isNull(error["message"]) ? 'Internal Server Error' : error["message"];
+                                cb(new HttpErrors.InternalServerError(_msg, {
+                                    expose: false
+                                }));
+                            })
+
                           }
                         }
 
@@ -216,7 +231,13 @@ module.exports = function(Ezpaypaymenttransactions) {
             filterCriteria = filterCriteria["meta"]["filterCriteria"];
         }
 
-        Ezpaypaymenttransactions.find({"where":{"payerId":payerId},"include":[{relation:'Payer'}],"order":"createdAt desc"}).then(transactions=>{
+        let filterObj = {};
+        filterObj["payerId"] = payerId;
+        if (!isNull(filterCriteria["merchantId"])) {
+          filterObj["merchantId"] = filterCriteria["merchantId"]; 
+        }
+
+        Ezpaypaymenttransactions.find({"where":filterObj,"include":[{relation:'Payer'}],"order":"createdAt desc"}).then(transactions=>{
           if(isValidObject(transactions)){
             cb(null,transactions);
           }else{
