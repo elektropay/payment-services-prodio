@@ -36,7 +36,8 @@
           "deactivateMerchant": true,
           "getMerchantProfile": true,
           "getMerchantActivationStatus": true,
-          "listAllMerchants": true
+          "listAllMerchants": true,
+          "getAllActiveMerchants":true
         }
       }
     }

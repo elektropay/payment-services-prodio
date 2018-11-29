@@ -787,6 +787,7 @@ module.exports = function(Ezpaymerchants) {
     );
 
     Ezpaymerchants.getAllActiveMerchants = (cb) => {
+        console.log("adfasdfasd");
         Ezpaymerchants.find({"where":{"isActive":true}}).then(merchantListing => {
 
             if (isValidObject(merchantListing)) {
