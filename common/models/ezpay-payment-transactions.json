@@ -19,7 +19,7 @@
       "type": "string"
     },
     "totalAmount":{
-      "type":"string"
+      "type":"number"
     },
     "metaData":{
       "type":"object"

@@ -19,11 +19,8 @@ let url = "";
 // After installing the below module, create folder "services" inside "server" folder and
 // create paymentsources.json file.
 
-const {
-    Service
-} = require('service-adapter-prodio');
-const paymentAdapter = new Service('payment');
-paymentAdapter.init();
+const {paymentAdapter} = require('../../server/moduleImporter');
+
 
 const isNull = function(val) {
     if (typeof val === 'string') {
@@ -65,88 +62,20 @@ module.exports = function(Ezpaymerchants) {
     Ezpaymerchants.testMerchant = (userInfo, cb) => {
         const paymentClass = require('payment-module-prodio');
         const paymentObj = new paymentClass();
+        let payload = {
+                "action": "GET_PAYERS_LISTING",
+                "meta": {
+                    "merchantId":"1c1c317e-c86b-4daa-bf4c-94445672a0ea"  
+                }
+            };
 
-        const payload = {
-            "action": "CREATE_MERCHANT",
-            /*(required)*/
-            "meta": {
-                "userId": "bb15dc52-96e2-45w0-b5ab-889aebf7a2e6",
-                /*(required)*/
-                "basic": {
-                    "firstName": "Shashikant",
-                    "lastName": "Sharma",
-                    "email": "dc.shashikant@gmail.com",
-                    "password": "shashikant23",
-                    "mobileNumber": "8097487977",
-                    "dateOfBirth": "MM-DD-YYYY",
-                    "ssn": ""
-                },
-                "business": {
-                    "businessName": "Food On Wheels",
-                    "dbaName": "Food On Wheels",
-                    "taxId": "",
-                    "contactEmail": "dc.shashikant@gmail.com",
-                    "contactNumber": "8097487977",
-                    "addressSameAsUser": "true",
-                    "address": {
-                        "country": "US",
-                        "state": "IL",
-                        "city": "Chicago",
-                        "streetAddress": "Valid Address",
-                        "zipCode": "60606"
-                    }
-                },
-                "billing": {
-                    "accountName": "Shashikant Sharma",
-                    "routingNumber": "123456789",
-                    "accountNumber": "134121314131",
-                    "fedTaxId": "123456789",
-                    "cardHolderName": "Shashikant Sharma",
-                    "creditCardNo": "4356234589794567",
-                    "expiryDate": "12/2020",
-                    "cvv": "345",
-                    "saveCard": "false",
-                    "addressSameAsBusiness": "false",
-                    "address": {
-                        "country": "US",
-                        "state": "IL",
-                        "city": "Chicago",
-                        "streetAddress": "Valid Address",
-                        "zipCode": "60606"
-                    }
-                },
-                "payees": [{
-                        "firstName": "Pawan",
-                        "lastName": "Wagh",
-                        "email": "pawan@prodio.in",
-                        "mobileNumber": "12312443222",
-                        "address": "test address",
-                        "paymentMethod": "CREDIT_CARD"
-                    },
-                    {
-                        "firstName": "Anurag",
-                        "lastName": "Tiwari",
-                        "email": "anurag@prodio.in",
-                        "mobileNumber": "12312443222",
-                        "address": "test address",
-                        "paymentMethod": "CREDIT_CARD"
-                    },
-                    {
-                        "firstName": "Vatsal",
-                        "lastName": "Shah",
-                        "email": "vatsal@prodio.in",
-                        "mobileNumber": "123893222",
-                        "address": "test address",
-                        "paymentMethod": "CREDIT_CARD"
-                    }
-                ]
-            }
-        };
 
         paymentObj.execute(payload, function(response) {
             if(typeof response == "string" || typeof response === "string"){
             	response = JSON.parse(response);
             }
+
+            console.log(response);
             
             if (!isNull(response.data)) {
             	let serverResponse = response["data"];
@@ -394,6 +323,68 @@ module.exports = function(Ezpaymerchants) {
         });
     }
 
+
+    Ezpaymerchants.remoteMethod(
+        'attachPayerWithMerchant', {
+            http: {
+                verb: 'post'
+            },
+            description: ["It will register the subscriber as merchant into payment gateway."],
+            accepts: [{
+                    arg: 'merchantId',
+                    type: 'string',
+                    required: true,
+                    http: {
+                        source: 'query'
+                    }
+                },
+                {
+                    arg: 'payerId',
+                    type: 'object',
+                    required: true,
+                    http: {
+                        source: 'query'
+                    }
+                }
+            ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaymerchants.attachPayerWithMerchant = (merchantId, payerId, cb) => {
+        Ezpaymerchants.findById(merchantId).then(merchantInfo => {
+
+            if (isValidObject(merchantInfo)) {
+                Ezpaymerchants.app.models.ezpayPayees.findById(payerId).then(payeeInfo=>{
+                    if(isValidObject(payeeInfo)){
+                        funCreateMerchantPayeeRelation(merchantId,payerId);
+                        cb(null,{"success":true});
+                    }else{
+                       return cb(new HttpErrors.InternalServerError('Invalid Payer Id', {
+                            expose: false
+                        })); 
+                    }
+                }).catch(error => {
+                    return cb(new HttpErrors.InternalServerError('Internal Server Error', {
+                        expose: false
+                    }));
+                });
+            }else{
+                return cb(new HttpErrors.InternalServerError('Invalid Merchant Id', {
+                    expose: false
+                }));
+            }
+        }).catch(error => {
+            return cb(new HttpErrors.InternalServerError('Internal Server Error', {
+                expose: false
+            }));
+        });
+    }
+
+
     Ezpaymerchants.remoteMethod(
         'updateMerchantProfile', {
             http: {
@@ -427,6 +418,50 @@ module.exports = function(Ezpaymerchants) {
     Ezpaymerchants.updateMerchantProfile = (merchantId, merchantInfo, cb) => {
     	cb(null,merchantInfo);
     }
+
+    Ezpaymerchants.remoteMethod(
+        'getMerchantListingForPayer', {
+            http: {
+                verb: 'post'
+            },
+            description: ["It will return the list of payees added by the merchant."],
+            accepts: [{
+                arg: 'payerId',
+                type: 'string',
+                required: true,
+                http: { source: 'query' }
+            }],
+            returns: {
+                type: 'array',
+                root: true
+            }
+        }
+    );
+
+
+    Ezpaymerchants.getMerchantListingForPayer = (payerId, cb) => {
+        Ezpaymerchants.app.models.merchantPayeesRelation.find({
+            include: [{
+                relation: 'Merchant'
+            }],
+            where: {
+                "payerId": payerId,
+                "isActive": true
+            },
+        }).then(merchants => {
+            //print(merchants); MH181128V6961754
+            if (isValidObject(merchants)) {
+                return cb(null, merchants);
+            } else {
+                return cb(null, merchants);
+            }
+        }).catch(error => {
+            return cb(new HttpErrors.InternalServerError('Internal Server Error', {
+                expose: false
+            }));
+        });
+    }
+
 
 
     Ezpaymerchants.remoteMethod(
@@ -463,9 +498,7 @@ module.exports = function(Ezpaymerchants) {
             if (isValidObject(payees)) {
                 return cb(null, payees);
             } else {
-                return cb(new HttpErrors.InternalServerError('Invalid Merchant Id', {
-	                expose: false
-	            }));
+                return cb(null, payees);
             }
         }).catch(error => {
             return cb(new HttpErrors.InternalServerError('Db connection failed', {
@@ -473,6 +506,49 @@ module.exports = function(Ezpaymerchants) {
             }));
         });
     }
+
+    async function getMerchantStatusPG(payload) {
+        return await paymentAdapter.getMerchantActionvationStatus(payload);
+    }
+
+
+    Ezpaymerchants.remoteMethod(
+        'listAllMerchants', {
+            http: {
+                verb: 'post'
+            },
+            description: ["It will return the merchants"],
+            accepts: [{
+                arg: 'accessKey',
+                type: 'string',
+                required: true,
+                http: { source: 'query' }
+            }, ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaymerchants.listAllMerchants = (accessKey, cb) => {
+        if(accessKey=="oidorp"){
+            Ezpaymerchants.find({"where":{},"order":"id desc"},function(err,res){
+                if(err){
+                    return cb(new HttpErrors.InternalServerError(err, {
+                        expose: false
+                    }));
+                }else{
+                    cb(null,res);
+                }
+            });
+        }else{
+            return cb(new HttpErrors.InternalServerError('Invalid Access Key', {
+                    expose: false
+            }));
+        }
+    }
+
 
 
     Ezpaymerchants.remoteMethod(
@@ -498,13 +574,21 @@ module.exports = function(Ezpaymerchants) {
         Ezpaymerchants.findById(merchantId).then(merchantInfo => {
 
             if (isValidObject(merchantInfo)) {
-                return cb(null, {
-                    "activationStatus": merchantInfo["isApprovedByGateway"]
-                });
+                getMerchantStatusPG({"merchantId":merchantInfo["gatewayMerchantId"]}).then(sdkResponse => {
+
+                        cb(null,sdkResponse["body"]);
+
+                    }).catch(error => {
+                        console.error(error);
+                        let _msg = isNull(error["message"]) ? 'Internal Server Error' : error["message"];
+                        cb(new HttpErrors.InternalServerError(_msg, {
+                            expose: false
+                        }));
+                    })
             } else {
-                return cb(null, {
-                    "activationStatus": false
-                });
+                return cb(new HttpErrors.NotFound('Invalid Merchant ID.', {
+                    expose: false
+                }));
             }
         }).catch(error => {
             return cb(new HttpErrors.InternalServerError('Db connection failed', {
@@ -686,4 +770,35 @@ module.exports = function(Ezpaymerchants) {
             }));
         });
     }
+
+
+    Ezpaymerchants.remoteMethod(
+        'getAllActiveMerchants', {
+            http: {
+                verb: 'get'
+            },
+            description: ["It will return merchant basic details"],
+            accepts: [],
+            returns: {
+                type: 'array',
+                root: true
+            }
+        }
+    );
+
+    Ezpaymerchants.getAllActiveMerchants = (cb) => {
+        Ezpaymerchants.find({"where":{"isActive":true}}).then(merchantListing => {
+
+            if (isValidObject(merchantListing)) {
+                return cb(null, merchantListing);
+            } else {
+                return cb(null, merchantListing);
+            }
+        }).catch(error => {
+            return cb(new HttpErrors.InternalServerError('Db connection failed', {
+                expose: false
+            }));
+        });
+    }
+
 };

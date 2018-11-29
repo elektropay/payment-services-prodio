@@ -35,7 +35,8 @@
           "removeMerchant": true,
           "deactivateMerchant": true,
           "getMerchantProfile": true,
-          "getMerchantActivationStatus": true
+          "getMerchantActivationStatus": true,
+          "listAllMerchants": true
         }
       }
     }
@@ -46,13 +47,7 @@
     "options": {
       "remoting": {
         "sharedMethods": {
-          "*": false,
-          "addPayee": true,
-          "editPayee": true,
-          "removePayees": true,
-          "importPayees": true,
-          "addCardForPayee": true,
-          "removeCard": true
+          "*": true
         }
       }
     }
