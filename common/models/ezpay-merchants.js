@@ -63,9 +63,18 @@ module.exports = function(Ezpaymerchants) {
         const paymentClass = require('payment-module-prodio');
         const paymentObj = new paymentClass('http://app.ezpay-dental.com:3010/api/');
         let payload = {
-                "action": "GET_MERCHANTS_OF_PAYER",
-                "meta":{
-                    "payerId":"99018cdb-4627-4900-803c-07bb7401d056"
+                "action": "PROCESS_PAYMENT",
+                "meta": {
+                    "transactionId":"bb15dc52-86e2-45c0-b5ab-889aebf7a1d6",  
+                    "payerId":"cc15dc54-98e2-45d0-b5ab-113aebf7a1e9",
+                    "cardId":"cc15dc54-98e2-45d0-b5ab-113aebf7a1e9", 
+                    "cardInfo":{                                    
+                        "cardNumber":"4111111111111111",
+                        "cardHolderName":"Shashikant Sharma",
+                        "expDate":"MM/YYYY",
+                        "cvv":"123",
+                        "cardType":"VISA"
+                    }
                 }
             };
 
@@ -339,7 +348,7 @@ module.exports = function(Ezpaymerchants) {
                 },
                 {
                     arg: 'payerId',
-                    type: 'object',
+                    type: 'string',
                     required: true,
                     http: {
                         source: 'query'
