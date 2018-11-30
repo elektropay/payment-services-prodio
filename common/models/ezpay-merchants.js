@@ -63,9 +63,11 @@ module.exports = function(Ezpaymerchants) {
         const paymentClass = require('payment-module-prodio');
         const paymentObj = new paymentClass('http://app.ezpay-dental.com:3010/api/');
         let payload = {
-                "action": "GET_ALL_MERCHANTS"
+                "action": "GET_MERCHANTS_OF_PAYER",
+                "meta":{
+                    "payerId":"99018cdb-4627-4900-803c-07bb7401d056"
+                }
             };
-
 
         paymentObj.execute(payload, function(response) {
             if(typeof response == "string" || typeof response === "string"){
@@ -442,7 +444,7 @@ module.exports = function(Ezpaymerchants) {
                 relation: 'Merchant'
             }],
             where: {
-                "payerId": payerId,
+                "payeeId": payerId,
                 "isActive": true
             },
         }).then(merchants => {
