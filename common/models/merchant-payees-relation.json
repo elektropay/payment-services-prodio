@@ -31,7 +31,7 @@
     "Merchant": {
       "type": "belongsTo",
       "model": "ezpayMerchants",
-      "foreignKey": "merchantId",
+      "foreignKey": "merchantId"
     },
     "Payee": {
       "type": "belongsTo",
