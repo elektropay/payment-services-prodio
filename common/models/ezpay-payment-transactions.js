@@ -227,14 +227,17 @@ module.exports = function(Ezpaypaymenttransactions) {
      );
 
   Ezpaypaymenttransactions.getPayersTransactions = (payerId,pageNo,filterCriteria, cb) => {
+      console.log(filterCriteria);
     if (!isNull(filterCriteria["meta"])) {
             filterCriteria = filterCriteria["meta"]["filterCriteria"];
         }
 
         let filterObj = {};
         filterObj["payerId"] = payerId;
-        if (!isNull(filterCriteria["merchantId"])) {
-          filterObj["merchantId"] = filterCriteria["merchantId"]; 
+        if (!isNull(filterCriteria)) {
+          if (!isNull(filterCriteria["merchantId"])) {
+            filterObj["merchantId"] = filterCriteria["merchantId"]; 
+          }
         }
 
         Ezpaypaymenttransactions.find({"where":filterObj,"include":[{relation:'Payer'}],"order":"createdAt desc"}).then(transactions=>{

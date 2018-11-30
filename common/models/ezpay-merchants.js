@@ -45,11 +45,11 @@ module.exports = function(Ezpaymerchants) {
             },
             description: ["It will register the subscriber as merchant into payment gateway."],
             accepts: [{
-                arg: 'userInfo',
-                type: 'object',
-                required: true,
+                arg: 'userID',
+                type: 'string',
+                required: false,
                 http: {
-                    source: 'body'
+                    source: 'query'
                 }
             }],
             returns: {
@@ -59,14 +59,11 @@ module.exports = function(Ezpaymerchants) {
         }
     );
 
-    Ezpaymerchants.testMerchant = (userInfo, cb) => {
+    Ezpaymerchants.testMerchant = (userID, cb) => {
         const paymentClass = require('payment-module-prodio');
-        const paymentObj = new paymentClass();
+        const paymentObj = new paymentClass('http://app.ezpay-dental.com:3010/api/');
         let payload = {
-                "action": "GET_PAYERS_LISTING",
-                "meta": {
-                    "merchantId":"1c1c317e-c86b-4daa-bf4c-94445672a0ea"  
-                }
+                "action": "GET_ALL_MERCHANTS"
             };
 
 
