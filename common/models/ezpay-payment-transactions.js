@@ -202,7 +202,7 @@ module.exports = function(Ezpaypaymenttransactions) {
             filterCriteria = filterCriteria["meta"]["filterCriteria"];
         }
 
-        Ezpaypaymenttransactions.find({"where":{"merchantId":merchantId},"include":[{relation:'Payer'}],"order":"createdAt desc"}).then(transactions=>{
+        Ezpaypaymenttransactions.find({"where":{"merchantId":merchantId},"include":[{relation:'Payer'},{relation:'Merchant',scope:{"fields":["merchantId","userId","userInfo","businessInfo"]}}],"order":"createdAt desc"}).then(transactions=>{
         	if(isValidObject(transactions)){
         		cb(null,transactions);
         	}else{
@@ -240,7 +240,7 @@ module.exports = function(Ezpaypaymenttransactions) {
           }
         }
 
-        Ezpaypaymenttransactions.find({"where":filterObj,"include":[{relation:'Payer'}],"order":"createdAt desc"}).then(transactions=>{
+        Ezpaypaymenttransactions.find({"where":filterObj,"include":[{relation:'Payer'},{relation:'Merchant',scope:{"fields":["merchantId","userId","userInfo","businessInfo"]}}],"order":"createdAt desc"}).then(transactions=>{
           if(isValidObject(transactions)){
             cb(null,transactions);
           }else{
@@ -309,20 +309,24 @@ module.exports = function(Ezpaypaymenttransactions) {
                description: ["This request will provide transaction details"],
                accepts: [
                 { arg: 'payerId',type: 'string',required: true,http: { source: 'query' }},
+                { arg: 'merchantId',type: 'string',required: false,http: { source: 'query' }},
                ],
                returns: { type: 'object', root: true }
           }
      );
 
-  Ezpaypaymenttransactions.getPayerTransactionStats = (payerId, cb) => {
+  Ezpaypaymenttransactions.getPayerTransactionStats = (payerId, merchantId, cb) => {
 
+    let condArr = [];
+    condArr.push({"payerId": payerId});
+    if(!isNull(merchantId)){
+      condArr.push({"merchantId": merchantId});
+    }
     var rewardCollection = Ezpaypaymenttransactions.getDataSource().connector.collection(Ezpaypaymenttransactions.modelName);
         var cursorTest = rewardCollection.aggregate([
             {
                 $match: {
-                    $and: [
-                        {"payerId": payerId},
-                    ]
+                    $and: condArr
                 }
             },
             {
