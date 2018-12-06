@@ -427,12 +427,19 @@ module.exports = function(Ezpaymerchants) {
         if(!isNull(merchantInfo["meta"])){
             merchantInfo = merchantInfo["meta"];
         }
-        Ezpaymerchants.findById(merchantId).then(merchantData=>{
+
+        console.log(merchantInfo);
+        Ezpaymerchants.findOne({"merchantId":merchantId}).then(merchantData=>{
             if(isValidObject(merchantData)){
                 let tmpData = merchantData;
                 tmpData["userInfo"] = merchantInfo["basic"];
                 tmpData["businessInfo"] = merchantInfo["business"];
                 tmpData["billingInfo"] = merchantInfo["billing"];
+                console.log("\n \n")
+                console.log(tmpData)
+                // merchantData.updateAll({"merchantId":merchantId},tmpData,function(err,res){
+                //     console.log(res)
+                // })
                 merchantData.updateAttributes(tmpData,function(err,respponse){
                     if(err){
                         return cb(new HttpErrors.InternalServerError('Internal Server Error '+JSON.stringify(err), {
