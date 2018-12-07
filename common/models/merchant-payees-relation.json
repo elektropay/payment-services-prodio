@@ -7,6 +7,11 @@
     "validateUpsert": true
   },
   "properties": {
+    "relationId": {
+      "type": "string",
+      "id": true,
+      "defaultFn": "uuidv4"
+    },
     "merchantId": {
       "type": "string"
     },
@@ -26,12 +31,7 @@
     "Merchant": {
       "type": "belongsTo",
       "model": "ezpayMerchants",
-      "foreignKey": "merchantId",
-      "options": {
-        "validate": true,
-        "persistent": true,
-        "nestRemoting": false
-      }
+      "foreignKey": "merchantId"
     },
     "Payee": {
       "type": "belongsTo",

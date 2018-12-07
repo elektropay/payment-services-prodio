@@ -38,7 +38,7 @@ module.exports = function(Ezpaypayees) {
             accepts: [{
                     arg: 'merchantId',
                     type: 'string',
-                    required: true,
+                    required: false,
                     http: {
                         source: 'query'
                     }
@@ -65,87 +65,146 @@ module.exports = function(Ezpaypayees) {
             payeeInfo = payeeInfo["meta"]["payerInfo"];
         }
 
-
-        Ezpaypayees.app.models.ezpayMerchants.findById(merchantId, function(err, merchantInfo) {
-            if (err) {
-                cb(new HttpErrors.InternalServerError('Query Error.', {
-                    expose: false
-                }));
-            } else {
-                if (isValidObject(merchantInfo)) {
-                    Ezpaypayees.findOne({
-                        "where": {
-                            "email": payeeInfo["email"]
-                        }
-                    }, function(err, payeeData) {
-                        if (err) {
-                            cb(new HttpErrors.InternalServerError('Query Error', {
-                                expose: false
-                            }));
-                        } else {
-                            if (isValidObject(payeeData)) {
-                                funCreateMerchantPayeeRelation(merchantId, payeeData["payeeId"], cb);
-                            } else {
-
-                                let savePayee = {
-                                    "merchantId": merchantId,
-                                    "firstName": isValid(payeeInfo["firstName"]) ? payeeInfo["firstName"] : "",
-                                    "lastName": isValid(payeeInfo["lastName"]) ? payeeInfo["lastName"] : "",
-                                    "email": isValid(payeeInfo["email"]) ? String(payeeInfo["email"]).toLowerCase() : "",
-                                    "mobileNumber": isValid(payeeInfo["mobileNumber"]) ? payeeInfo["mobileNumber"] : "",
-                                    "address": isValid(payeeInfo["address"]) ? payeeInfo["address"] : "",
-                                    "paymentMethod": isValid(payeeInfo["paymentMethod"]) ? payeeInfo["paymentMethod"] : "",
-                                    "isActive": true,
-                                    "createdAt": new Date(),
-                                    "updatedAt": new Date()
-                                };
-
-                                let _payload = {
-                                    "payeeInfo": savePayee,
-                                    "merchantInfo": merchantInfo
-                                };
-
-                                funCreatePayerInGateway(_payload).then(sdkResponse => {
-
-                                    savePayee["gatewayBuyerId"] = sdkResponse["body"]["gatewayBuyerId"];
-                                    Ezpaypayees.create(savePayee).then(payeeObj => {
-
-                                        funCreateMerchantPayeeRelation(merchantId, payeeObj["payeeId"], cb);
-                                        //cb(null,{"success":true,"isAlreadyExists":false,"payerId":payeeObj["payeeId"]});
-                                    }).catch(error => {
-                                        cb(new HttpErrors.InternalServerError('Error while creating new payee.', {
-                                            expose: false
-                                        }));
-                                    });
-                                }).catch(error => {
-                                    console.error(error);
-                                    let _msg = isNull(error["message"]) ? 'Internal Server Error' : error["message"];
-                                    cb(new HttpErrors.InternalServerError(_msg, {
-                                        expose: false
-                                    }));
-                                })
-
-                                // Ezpaypayees.findOne({"where":{"mobileNumber":payeeInfo["mobileNumber"]}},function(err,payeeData){
-                                //      if(err){
-                                //           cb(new HttpErrors.InternalServerError('Query Error', {expose: false}));
-                                //      }else{
-                                //           if (isValidObject(payeeData)) {
-                                //                funCreateMerchantPayeeRelation(merchantId,payeeData["payeeId"],cb);
-                                //           }else{
-
-                                //           }
-                                //      }
-                                // });
-                            }
-                        }
-                    })
-                } else {
-                    cb(new HttpErrors.NotFound('Merchant Not Found!!', {
+        if(isNull(merchantId)){
+          Ezpaypayees.findOne({
+                "where": {
+                    "email": payeeInfo["email"]
+                }
+            }, function(err, payeeData) {
+                if (err) {
+                    cb(new HttpErrors.InternalServerError('Query Error', {
                         expose: false
                     }));
+                } else {
+                    if (isValidObject(payeeData)) {
+                        cb(new HttpErrors.InternalServerError('Email Id already exists.', {
+                            expose: false
+                        }));
+                    } else {
+
+                        let savePayee = {
+                            "merchantId": merchantId,
+                            "firstName": isValid(payeeInfo["firstName"]) ? payeeInfo["firstName"] : "",
+                            "lastName": isValid(payeeInfo["lastName"]) ? payeeInfo["lastName"] : "",
+                            "email": isValid(payeeInfo["email"]) ? String(payeeInfo["email"]).toLowerCase() : "",
+                            "mobileNumber": isValid(payeeInfo["mobileNumber"]) ? payeeInfo["mobileNumber"] : "",
+                            "address": isValid(payeeInfo["address"]) ? payeeInfo["address"] : "",
+                            "paymentMethod": isValid(payeeInfo["paymentMethod"]) ? payeeInfo["paymentMethod"] : "",
+                            "isActive": true,
+                            "createdAt": new Date(),
+                            "updatedAt": new Date()
+                        };
+
+                        let _payload = {
+                            "payeeInfo": savePayee,
+                            "merchantInfo": {}
+                        };
+
+                        Ezpaypayees.create(savePayee).then(payeeObj => {
+                                //funCreateMerchantPayeeRelation(merchantId, payeeObj["payeeId"], cb);
+                            cb(null,{"success":true,"isAlreadyExists":false,"payerId":payeeObj["payeeId"]});
+                        }).catch(error => {
+                            cb(new HttpErrors.InternalServerError('Error while creating new payee.', {
+                                expose: false
+                            }));
+                        });
+
+                        // Ezpaypayees.findOne({"where":{"mobileNumber":payeeInfo["mobileNumber"]}},function(err,payeeData){
+                        //      if(err){
+                        //           cb(new HttpErrors.InternalServerError('Query Error', {expose: false}));
+                        //      }else{
+                        //           if (isValidObject(payeeData)) {
+                        //                funCreateMerchantPayeeRelation(merchantId,payeeData["payeeId"],cb);
+                        //           }else{
+
+                        //           }
+                        //      }
+                        // });
+                    }
                 }
-            }
-        });
+            })
+        }else{
+          Ezpaypayees.app.models.ezpayMerchants.findById(merchantId, function(err, merchantInfo) {
+              if (err) {
+                  cb(new HttpErrors.InternalServerError('Query Error.', {
+                      expose: false
+                  }));
+              } else {
+                  if (isValidObject(merchantInfo)) {
+                      Ezpaypayees.findOne({
+                          "where": {
+                              "email": payeeInfo["email"]
+                          }
+                      }, function(err, payeeData) {
+                          if (err) {
+                              cb(new HttpErrors.InternalServerError('Query Error', {
+                                  expose: false
+                              }));
+                          } else {
+                              if (isValidObject(payeeData)) {
+                                  funCreateMerchantPayeeRelation(merchantId, payeeData["payeeId"], cb);
+                              } else {
+
+                                  let savePayee = {
+                                      "merchantId": merchantId,
+                                      "firstName": isValid(payeeInfo["firstName"]) ? payeeInfo["firstName"] : "",
+                                      "lastName": isValid(payeeInfo["lastName"]) ? payeeInfo["lastName"] : "",
+                                      "email": isValid(payeeInfo["email"]) ? String(payeeInfo["email"]).toLowerCase() : "",
+                                      "mobileNumber": isValid(payeeInfo["mobileNumber"]) ? payeeInfo["mobileNumber"] : "",
+                                      "address": isValid(payeeInfo["address"]) ? payeeInfo["address"] : "",
+                                      "paymentMethod": isValid(payeeInfo["paymentMethod"]) ? payeeInfo["paymentMethod"] : "",
+                                      "isActive": true,
+                                      "createdAt": new Date(),
+                                      "updatedAt": new Date()
+                                  };
+
+                                  let _payload = {
+                                      "payeeInfo": savePayee,
+                                      "merchantInfo": merchantInfo
+                                  };
+
+                                  funCreatePayerInGateway(_payload).then(sdkResponse => {
+
+                                      savePayee["gatewayBuyerId"] = sdkResponse["body"]["gatewayBuyerId"];
+                                      Ezpaypayees.create(savePayee).then(payeeObj => {
+
+                                          funCreateMerchantPayeeRelation(merchantId, payeeObj["payeeId"], cb);
+                                          //cb(null,{"success":true,"isAlreadyExists":false,"payerId":payeeObj["payeeId"]});
+                                      }).catch(error => {
+                                          cb(new HttpErrors.InternalServerError('Error while creating new payee.', {
+                                              expose: false
+                                          }));
+                                      });
+                                  }).catch(error => {
+                                      console.error(error);
+                                      let _msg = isNull(error["message"]) ? 'Internal Server Error' : error["message"];
+                                      cb(new HttpErrors.InternalServerError(_msg, {
+                                          expose: false
+                                      }));
+                                  })
+
+                                  // Ezpaypayees.findOne({"where":{"mobileNumber":payeeInfo["mobileNumber"]}},function(err,payeeData){
+                                  //      if(err){
+                                  //           cb(new HttpErrors.InternalServerError('Query Error', {expose: false}));
+                                  //      }else{
+                                  //           if (isValidObject(payeeData)) {
+                                  //                funCreateMerchantPayeeRelation(merchantId,payeeData["payeeId"],cb);
+                                  //           }else{
+
+                                  //           }
+                                  //      }
+                                  // });
+                              }
+                          }
+                      })
+                  } else {
+                      cb(new HttpErrors.NotFound('Merchant Not Found!!', {
+                          expose: false
+                      }));
+                  }
+              }
+          });
+        }
     }
 
 

@@ -1,23 +1,10 @@
 var soap = require('soap');
 var parseString = require('xml2js').parseString;
 
-//  var IntegrityCrendentials = {
-//     'UserName': "kinetempapi123",
-//     'Password': "EzPay123",
-//     'Vendor': "75",
-//     'BeginDt': "1/11/2017",
-//     'EndDt': "1/11/2018",
-//     'RecurringURL':'https://sandbox.ibxpays.com/vt/ws/recurring.asmx?wsdl',
-//     'TransactionsURL':'https://sandbox.ibxpays.com/ws/transact.asmx?wsdl',
-//     'CardSafeURL':'https://sandbox.ibxpays.com/ws/cardsafe.asmx?wsdl',
-//     'CustomFieldsURL':'https://sandbox.ibxpays.com/ws/customfields.asmx?wsdl',
-//     'TransactionDetailsURL':'https://sandbox.ibxpays.com/vt/ws/trxdetail.asmx?wsdl',
-// }
-
  var IntegrityCrendentials = {
-    'UserName': "4190_Demo_IBX_IPS_ISV_9029676_API_0",
-    'Password': "}z%vO=58=o",
-    'Vendor': "2432",
+    'UserName': "kinetempapi123",
+    'Password': "EzPay123",
+    'Vendor': "75",
     'BeginDt': "1/11/2017",
     'EndDt': "1/11/2018",
     'RecurringURL':'https://sandbox.ibxpays.com/vt/ws/recurring.asmx?wsdl',
@@ -26,6 +13,19 @@ var parseString = require('xml2js').parseString;
     'CustomFieldsURL':'https://sandbox.ibxpays.com/ws/customfields.asmx?wsdl',
     'TransactionDetailsURL':'https://sandbox.ibxpays.com/vt/ws/trxdetail.asmx?wsdl',
 }
+
+//  var IntegrityCrendentials = {
+//     'UserName': "4190_Demo_IBX_IPS_ISV_9029676_API_0",
+//     'Password': "}z%vO=58=o",
+//     'Vendor': "2432",
+//     'BeginDt': "1/11/2017",
+//     'EndDt': "1/11/2018",
+//     'RecurringURL':'https://sandbox.ibxpays.com/vt/ws/recurring.asmx?wsdl',
+//     'TransactionsURL':'https://sandbox.ibxpays.com/ws/transact.asmx?wsdl',
+//     'CardSafeURL':'https://sandbox.ibxpays.com/ws/cardsafe.asmx?wsdl',
+//     'CustomFieldsURL':'https://sandbox.ibxpays.com/ws/customfields.asmx?wsdl',
+//     'TransactionDetailsURL':'https://sandbox.ibxpays.com/vt/ws/trxdetail.asmx?wsdl',
+// }
 
 
 var soap_client_options = {};

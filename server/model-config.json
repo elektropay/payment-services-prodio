@@ -27,16 +27,7 @@
     "options": {
       "remoting": {
         "sharedMethods": {
-          "*": false,
-          "testMerchant":true,
-          "createMerchant": true,
-          "getPayeesListing": true,
-          "removeById": true,
-          "removeMerchant": true,
-          "deactivateMerchant": true,
-          "getMerchantProfile": true,
-          "getMerchantActivationStatus": true,
-          "listAllMerchants": true
+          "*": true
         }
       }
     }

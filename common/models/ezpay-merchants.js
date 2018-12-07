@@ -45,11 +45,11 @@ module.exports = function(Ezpaymerchants) {
             },
             description: ["It will register the subscriber as merchant into payment gateway."],
             accepts: [{
-                arg: 'userInfo',
-                type: 'object',
-                required: true,
+                arg: 'userID',
+                type: 'string',
+                required: false,
                 http: {
-                    source: 'body'
+                    source: 'query'
                 }
             }],
             returns: {
@@ -59,16 +59,24 @@ module.exports = function(Ezpaymerchants) {
         }
     );
 
-    Ezpaymerchants.testMerchant = (userInfo, cb) => {
+    Ezpaymerchants.testMerchant = (userID, cb) => {
         const paymentClass = require('payment-module-prodio');
-        const paymentObj = new paymentClass();
+        const paymentObj = new paymentClass('http://app.ezpay-dental.com:3010/api/');
         let payload = {
-                "action": "GET_PAYERS_LISTING",
+                "action": "PROCESS_PAYMENT",
                 "meta": {
-                    "merchantId":"1c1c317e-c86b-4daa-bf4c-94445672a0ea"  
+                    "transactionId":"bb15dc52-86e2-45c0-b5ab-889aebf7a1d6",  
+                    "payerId":"cc15dc54-98e2-45d0-b5ab-113aebf7a1e9",
+                    "cardId":"cc15dc54-98e2-45d0-b5ab-113aebf7a1e9", 
+                    "cardInfo":{                                    
+                        "cardNumber":"4111111111111111",
+                        "cardHolderName":"Shashikant Sharma",
+                        "expDate":"MM/YYYY",
+                        "cvv":"123",
+                        "cardType":"VISA"
+                    }
                 }
             };
-
 
         paymentObj.execute(payload, function(response) {
             if(typeof response == "string" || typeof response === "string"){
@@ -340,7 +348,7 @@ module.exports = function(Ezpaymerchants) {
                 },
                 {
                     arg: 'payerId',
-                    type: 'object',
+                    type: 'string',
                     required: true,
                     http: {
                         source: 'query'
@@ -416,7 +424,42 @@ module.exports = function(Ezpaymerchants) {
     );
 
     Ezpaymerchants.updateMerchantProfile = (merchantId, merchantInfo, cb) => {
-    	cb(null,merchantInfo);
+        if(!isNull(merchantInfo["meta"])){
+            merchantInfo = merchantInfo["meta"];
+        }
+
+        console.log(merchantInfo);
+        Ezpaymerchants.findOne({"merchantId":merchantId}).then(merchantData=>{
+            if(isValidObject(merchantData)){
+                let tmpData = merchantData;
+                tmpData["userInfo"] = merchantInfo["basic"];
+                tmpData["businessInfo"] = merchantInfo["business"];
+                tmpData["billingInfo"] = merchantInfo["billing"];
+                console.log("\n \n")
+                console.log(tmpData)
+                // merchantData.updateAll({"merchantId":merchantId},tmpData,function(err,res){
+                //     console.log(res)
+                // })
+                merchantData.updateAttributes(tmpData,function(err,respponse){
+                    if(err){
+                        return cb(new HttpErrors.InternalServerError('Internal Server Error '+JSON.stringify(err), {
+                            expose: false
+                        }));
+                    }else{
+                        cb(null,respponse);
+                    }
+                })
+            }else{
+                return cb(new HttpErrors.InternalServerError('Invalid Merchant Id', {
+                    expose: false
+                }));
+            }
+        }).catch(error => {
+            return cb(new HttpErrors.InternalServerError('Internal Server Error', {
+                expose: false
+            }));
+        });
+        
     }
 
     Ezpaymerchants.remoteMethod(
@@ -445,7 +488,7 @@ module.exports = function(Ezpaymerchants) {
                 relation: 'Merchant'
             }],
             where: {
-                "payerId": payerId,
+                "payeeId": payerId,
                 "isActive": true
             },
         }).then(merchants => {
@@ -787,6 +830,7 @@ module.exports = function(Ezpaymerchants) {
     );
 
     Ezpaymerchants.getAllActiveMerchants = (cb) => {
+        console.log("adfasdfasd");
         Ezpaymerchants.find({"where":{"isActive":true}}).then(merchantListing => {
 
             if (isValidObject(merchantListing)) {

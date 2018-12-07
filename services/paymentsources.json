@@ -1,12 +1,12 @@
 {
-    "braintree":
+    "payu":
     {
-        "client_secret": "",
-        "client_id": "",
-        "merchant_id": "",
-        "username": "",
-        "password": "",
-        "connector": "braintree-connector-prodio",
+        "MID": "5964633",
+        "KEY": "4lgAWlPq",
+        "SALT": "q0wAnmiaCA",
+        "AUTH_HEADER": "V9dgY+nePqbZi3YZj1y/aPwOm9e1yVoHs04df4LQgXY=",
+        "PRODUCTION_MODE":false,
+        "connector": "payu-connector-prodio",
         "is_active": false
     },
     "integrity":
