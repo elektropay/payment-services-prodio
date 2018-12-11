@@ -350,6 +350,45 @@ module.exports = function(Ezpaypayees) {
     }
 
 
+        Ezpaypayees.remoteMethod(
+        'getPayerProfileByEmail', {
+            http: {
+                verb: 'post'
+            },
+            description: ["Add Payee"],
+            accepts: [{
+                arg: 'payerEmail',
+                type: 'string',
+                required: true,
+                http: {
+                    source: 'query'
+                }
+            }, ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaypayees.getPayerProfileByEmail = (payerEmail, cb) => {
+        Ezpaypayees.findOne({"email":payerEmail}).then(payeeObj => {
+            if (isValidObject(payeeObj)) {
+                cb(null, payeeObj);
+            } else {
+                cb(new HttpErrors.InternalServerError('Invalid Payee ID.', {
+                    expose: false
+                }));
+            }
+        }).catch(error => {
+            cb(new HttpErrors.InternalServerError('Server Error', {
+                expose: false
+            }));
+        });
+    }
+
+
+
     Ezpaypayees.remoteMethod(
         'getPayerProfile', {
             http: {
