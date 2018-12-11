@@ -5,9 +5,9 @@
         "KEY": "4lgAWlPq",
         "SALT": "q0wAnmiaCA",
         "AUTH_HEADER": "V9dgY+nePqbZi3YZj1y/aPwOm9e1yVoHs04df4LQgXY=",
-        "PRODUCTION_MODE":false,
+        "PRODUCTION_MODE":true,
         "connector": "payu-connector-prodio",
-        "is_active": false
+        "is_active": true
     },
     "integrity":
     {
@@ -17,6 +17,14 @@
         "username": "kinetempapi123",
         "password": "Technologies1",
         "connector": "integrity-connector-prodio",
-        "is_active": true
+        "is_active": false
+    },
+    "tsys":
+    {
+        "MERCHANT_NAME": "Test Ceios",
+        "MERCHANT_SITE_ID": "DOUJQRYH",
+        "MERCHANT_KEY": "7LJJ3-L7ZCZ-7GWSU-2OBMB-8E22W",
+        "connector": "tsys-connector-prodio",
+        "is_active": false
     }
 }

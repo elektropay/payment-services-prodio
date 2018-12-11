@@ -66,6 +66,7 @@ module.exports = function(Ezpaypayees) {
         }
 
         if(isNull(merchantId)){
+          console.log("No merhant id");
           Ezpaypayees.findOne({
                 "where": {
                     "email": payeeInfo["email"]
