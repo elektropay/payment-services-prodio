@@ -372,7 +372,7 @@ module.exports = function(Ezpaypayees) {
     );
 
     Ezpaypayees.getPayerProfileByEmail = (payerEmail, cb) => {
-        Ezpaypayees.findOne({"email":payerEmail}).then(payeeObj => {
+        Ezpaypayees.findOne({"where":{"email": payerEmail }}).then(payeeObj => {
             if (isValidObject(payeeObj)) {
                 cb(null, payeeObj);
             } else {
