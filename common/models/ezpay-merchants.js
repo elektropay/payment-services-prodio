@@ -197,7 +197,7 @@ module.exports = function(Ezpaymerchants) {
 
                         let saveMerchant = {
                             "userId": convertObjectIdToString(userId),
-                            "paymentGateway": "INTEGRITY",
+                            "paymentGateway": "",
                             "userInfo": basic,
                             "businessInfo": business,
                             "billingInfo": billing,
