@@ -178,8 +178,8 @@ module.exports = function(Ezpaypaymenttransactions) {
         }
        
 
-        paymentInfo["successUrl"] = url + "/api/ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["successUrl"] + "&merchantId=" + paymentInfo["merchantId"];
-        paymentInfo["failureUrl"] = url + "/api/ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["failureUrl"] + "&merchantId=" + paymentInfo["merchantId"];
+        paymentInfo["successUrl"] = url + "ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["successUrl"] + "&merchantId=" + paymentInfo["merchantId"];
+        paymentInfo["failureUrl"] = url + "ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["failureUrl"] + "&merchantId=" + paymentInfo["merchantId"];
         console.log("paymentInfo==>"+JSON.stringify(paymentInfo));
 
         funMakeDirectPaymentInGateway({
