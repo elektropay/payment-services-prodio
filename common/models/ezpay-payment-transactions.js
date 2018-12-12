@@ -169,7 +169,7 @@ module.exports = function(Ezpaypaymenttransactions) {
         }else{
             if(!isNull(req)){
                 req = JSON.parse(CircularJSON.stringify(req));
-                url = req.headers.origin + req.originalUrl;
+                url = req.headers.origin ;
             }
         }
 
@@ -178,8 +178,8 @@ module.exports = function(Ezpaypaymenttransactions) {
         }
        
 
-        paymentInfo["successUrl"] = req.headers.origin + "/api/ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["successUrl"] + "&merchantId=" + paymentInfo["merchantId"];
-        paymentInfo["failureUrl"] = req.headers.origin + "/api/ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["failureUrl"] + "&merchantId=" + paymentInfo["merchantId"];
+        paymentInfo["successUrl"] = url + "/api/ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["successUrl"] + "&merchantId=" + paymentInfo["merchantId"];
+        paymentInfo["failureUrl"] = url + "/api/ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["failureUrl"] + "&merchantId=" + paymentInfo["merchantId"];
         console.log("paymentInfo==>"+JSON.stringify(paymentInfo));
 
         funMakeDirectPaymentInGateway({
