@@ -23,6 +23,8 @@
     "loopback-connector-mongodb": "^1.18.1",
     "notification-service-sdk-prodio": "^1.0.5",
     "payment-module-prodio": "^1.0.8",
+    "payu-connector-prodio": "0.0.1",
+    "payumoney-node": "^2.0.1",
     "serve-favicon": "^2.0.1",
     "service-adapter-prodio": "0.0.8",
     "soap": "^0.25.0",

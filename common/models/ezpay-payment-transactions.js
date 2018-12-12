@@ -17,6 +17,8 @@ const {
     paymentAdapter
 } = require('../../server/moduleImporter');
 
+const CircularJSON = require('circular-json');
+
 const isNull = function(val) {
     if (typeof val === 'string') {
         val = val.trim();
@@ -125,6 +127,88 @@ module.exports = function(Ezpaypaymenttransactions) {
     async function funMakePaymentInGateway(payload) {
         return await paymentAdapter.makePayment(payload);
     }
+
+    async function funMakeDirectPaymentInGateway(payload) {
+        return await paymentAdapter.makeDirectPayment(payload);
+    }
+
+    Ezpaypaymenttransactions.remoteMethod(
+        'directPayment', {
+            http: {
+                verb: 'post'
+            },
+            description: ["This request will initiate a payment request transaction"],
+            accepts: [{
+                    arg: 'paymentInfo',
+                    type: 'object',
+                    required: false,
+                    http: {
+                        source: 'body'
+                    }
+                },
+                {
+                    arg: 'req',
+                    type: 'object',
+                    http: ctx => {
+                        return ctx.req;
+                    }
+                },
+            ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaypaymenttransactions.directPayment = (paymentInfo, req, cb) => {
+
+        if (!isNull(paymentInfo["meta"])) {
+            paymentInfo = paymentInfo["meta"];
+        }
+
+        req = JSON.parse(CircularJSON.stringify(req));
+        var url = req.headers.origin + req.originalUrl;
+
+        paymentInfo["successUrl"] = req.headers.origin + "/api/ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["successUrl"] + "&merchantId=" + paymentInfo["merchantId"];
+        paymentInfo["failureUrl"] = req.headers.origin + "/api/ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["failureUrl"] + "&merchantId=" + paymentInfo["merchantId"];
+
+        funMakeDirectPaymentInGateway({
+            "paymentInfo": paymentInfo
+        }).then(sdkResponse => {
+            console.log(sdkResponse);
+            cb(null, {
+                "success": true,
+                "body": sdkResponse
+            });
+        }).catch(error => {
+            console.error(error);
+            let _msg = isNull(error["message"]) ? 'Internal Server Error' : error["message"];
+            cb(new HttpErrors.InternalServerError(_msg, {
+                expose: false
+            }));
+        })
+
+
+
+        // {
+        //     "meta": {
+        //     "orderTitle": "test name",
+        //     "orderNumber": "123",
+        //     "amount": "200",
+        //     "email":"shashikant@prodio.in",
+        //     "phone":"809757778",
+        //     "firstname":"shashikant",
+        //     "lastname":"sharma",
+        //     "successUrl": "https://alpha.kinektapp.com/success", 
+        //     "failureUrl": "https://alpha.kinektapp.com/failure",
+        //     }
+        // }
+
+
+    }
+
+
 
 
     Ezpaypaymenttransactions.remoteMethod(
@@ -711,16 +795,43 @@ module.exports = function(Ezpaypaymenttransactions) {
     }
 
 
-      Ezpaypaymenttransactions.remoteMethod(
+    Ezpaypaymenttransactions.remoteMethod(
         'receivePayUWebhooks', {
             http: {
                 verb: 'post'
             },
             description: ["This request will provide transaction details"],
-            accepts: [
-                { arg: 'data',type: 'object',required: true, http: { source: 'body' }},
-                { arg: 'redirectUrl',type: 'string',required: true, http: { source: 'query' }},
-                { arg: 'res', type: 'object', http: ctx => { return ctx.res; }},
+            accepts: [{
+                    arg: 'data',
+                    type: 'object',
+                    required: true,
+                    http: {
+                        source: 'body'
+                    }
+                },
+                {
+                    arg: 'redirectUrl',
+                    type: 'string',
+                    required: true,
+                    http: {
+                        source: 'query'
+                    }
+                },
+                {
+                    arg: 'merchantId',
+                    type: 'string',
+                    required: false,
+                    http: {
+                        source: 'query'
+                    }
+                },
+                {
+                    arg: 'res',
+                    type: 'object',
+                    http: ctx => {
+                        return ctx.res;
+                    }
+                },
             ],
             returns: {
                 type: 'object',
@@ -729,18 +840,98 @@ module.exports = function(Ezpaypaymenttransactions) {
         }
     );
 
-    Ezpaypaymenttransactions.receivePayUWebhooks = (data, redirectUrl,res, next) => {
-      console.log(data);
+    function funCreateTransactionAndRedirect(savePayment, res, redirectUrl) {
+        Ezpaypaymenttransactions.create(savePayment).then(transactionInfo => {
+            // cb(null, {
+            //     "success": true,
+            //     "transactionId": transactionInfo["transactionId"],
+            //     "gatewayTransactionId": data["txnid"]
+            // });
+            res.redirect(redirectUrl);
+        }).catch(error => {
+            res.redirect(redirectUrl);
+        });
+    }
 
-      if((!isNull(data["status"])) && (data["status"]=="success")  ){
-          // Successful Transaction
-      }else{
-          // Failed Transaction
-      }
-      //cb(null,data);
-      res.redirect(redirectUrl);
-      //success
-      /*
+
+    function funCheckTransactionStatus(data, merchantId, payeeInfo, res, redirectUrl) {
+        if ((!isNull(data["status"])) && (data["status"] == "success")) {
+            let savePayment = {
+                "merchantId": merchantId,
+                "payerId": payeeInfo["payerId"],
+                "totalAmount": parseFloat(data["amount"]),
+                "isRecurring": false,
+                "payableDate": new Date(),
+                "transactionStatus": "PAID",
+                "metaData": data,
+                "isActive": true,
+                "createdAt": new Date()
+            };
+            funCreateTransactionAndRedirect(savePayment, res, redirectUrl);
+        } else {
+            let savePayment = {
+                "merchantId": merchantId,
+                "payerId": payeeInfo["payerId"],
+                "totalAmount": parseFloat(data["amount"]),
+                "isRecurring": false,
+                "payableDate": new Date(),
+                "transactionStatus": "FAILED",
+                "metaData": data,
+                "isActive": true,
+                "createdAt": new Date()
+            };
+            funCreateTransactionAndRedirect(savePayment, res, redirectUrl);
+        }
+    }
+
+
+    Ezpaypaymenttransactions.receivePayUWebhooks = (data, redirectUrl, merchantId, res, next) => {
+        console.log(data);
+        // Successful Transaction
+        //step1 . get merchant id
+        //step2 . create payer if not already get payer 1
+        //step3. create transaction with success
+        Ezpaypaymenttransactions.app.models.ezpayPayees.findOne({
+            "where": {
+                "email": data["email"]
+            }
+        }).then(payeeInfo => {
+            if (isValidObject(payeeInfo)) {
+                funCheckTransactionStatus(data, merchantId, payeeInfo, res, redirectUrl);
+
+            } else {
+                //create new payee
+
+                let savePayee = {
+                    "merchantId": merchantId,
+                    "firstName": isValid(data["firstname"]) ? data["firstname"] : "",
+                    "lastName": isValid(data["lastname"]) ? data["lastname"] : "",
+                    "email": isValid(data["email"]) ? String(data["email"]).toLowerCase() : "",
+                    "mobileNumber": isValid(data["phone"]) ? data["phone"] : "",
+                    "address": isValid(data["address1"]) ? data["address1"] : "",
+                    "paymentMethod": "CREDIT_CARD",
+                    "isActive": true,
+                    "createdAt": new Date(),
+                    "updatedAt": new Date()
+                };
+
+                Ezpaypaymenttransactions.app.models.ezpayPayees.create(savePayee).then(payeeInfo => {
+                    //create transaction
+                    funCheckTransactionStatus(data, merchantId, payeeInfo, res, redirectUrl);
+
+                }).catch(error => {
+                    res.redirect(redirectUrl);
+                });
+            }
+        }).catch(error => {
+            res.redirect(redirectUrl);
+        });
+
+
+        //cb(null,data);
+
+        //success
+        /*
 
       {
   "mihpayid": "202615",
