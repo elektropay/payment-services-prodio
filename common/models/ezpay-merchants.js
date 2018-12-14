@@ -20,7 +20,8 @@ let url = "";
 // create paymentsources.json file.
 
 const {paymentAdapter} = require('../../server/moduleImporter');
-
+const paymentClass = require('payment-module-prodio');
+        const paymentObj = new paymentClass('http://localhost:3010/api/');
 
 const isNull = function(val) {
     if (typeof val === 'string') {
@@ -60,22 +61,13 @@ module.exports = function(Ezpaymerchants) {
     );
 
     Ezpaymerchants.testMerchant = (userID, cb) => {
-        const paymentClass = require('payment-module-prodio');
-        const paymentObj = new paymentClass('http://app.ezpay-dental.com:3010/api/');
-        let payload = {
-                "action": "PROCESS_PAYMENT",
-                "meta": {
-                    "transactionId":"bb15dc52-86e2-45c0-b5ab-889aebf7a1d6",  
-                    "payerId":"cc15dc54-98e2-45d0-b5ab-113aebf7a1e9",
-                    "cardId":"cc15dc54-98e2-45d0-b5ab-113aebf7a1e9", 
-                    "cardInfo":{                                    
-                        "cardNumber":"4111111111111111",
-                        "cardHolderName":"Shashikant Sharma",
-                        "expDate":"MM/YYYY",
-                        "cvv":"123",
-                        "cardType":"VISA"
-                    }
-                }
+        
+        console.log(paymentObj);
+        const payload = {
+                "action": "GET_PAYERS_LISTING",
+                        "meta": {
+                            "merchantId":"bb15dc52-86e2-45c0-b5ab-889aebf7a1d6" /*(You can get this merchantId from the response of createMerchant or getMerchantId function)*/  
+                        }
             };
 
         paymentObj.execute(payload, function(response) {
@@ -98,7 +90,11 @@ module.exports = function(Ezpaymerchants) {
                         expose: false
                     }));
                 } else {
-                    cb(null, response.data);
+                     var firstresposne = response.data;
+
+                    funCallAnotherFb(cb,firstresposne);
+                    
+                    
                 }
             } else {
             	if (!isNull(response["response"])) {
@@ -125,6 +121,51 @@ module.exports = function(Ezpaymerchants) {
             }
         });
     }
+
+
+    function funCallAnotherFb(cb,firstresposne){
+        const newpayload = {
+                action: 'DIRECT_PAYMENT',
+                meta:
+                  {
+                  merchantId: '9b7766fa-31f6-4048-8c3f-46414cd3b069',
+                   orderTitle: 'Locations booking',
+                   orderNumber: '123',   amount: '1',
+                     firstname: 'Anurag',
+                     lastname: 'Tiwari',
+                  email: 'anurag@prodio.in',
+                    phone: '9870148082',
+                   successUrl: 'http://reccetheworld.com/?success/#/reccetheworld/matchedLocation/5b66bf17f268e753b7beada9',
+                    failureUrl: 'http://reccetheworld.com/?failure/#/reccetheworld/matchedLocation/5b66bf17f268e753b7beada9' },
+                  BASE_URL: 'http://reccetheworld.com:3010/api/'
+                };
+
+        console.log(" \n outl...");
+       
+
+        paymentObj.execute(newpayload, function(response) {
+            console.log(" \n inside 2nd call...");
+            var second = response.data;
+            funCall3rdFn(cb,firstresposne,second);
+            
+        });
+    }
+
+    function funCall3rdFn(cb,firstresposne,second){
+         const rdpayload = {
+            "action": "GET_MERCHANT_PROFILE",
+            "meta": {
+                "merchantId":"bb15dc52-86e2-45c0-b5ab-889aebf7a1d6" /*(You can get this merchantId from the response of createMerchant or getMerchantId function)*/  
+            }
+        };
+
+        paymentObj.execute(rdpayload, function(response) {
+            var third = response.data;
+            cb(null, {"second":second,"firstresposne":firstresposne,"third":third});
+        });
+    }
+
+
 
 
 
