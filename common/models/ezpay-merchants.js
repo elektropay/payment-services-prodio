@@ -374,6 +374,37 @@ module.exports = function(Ezpaymerchants) {
 
 
     Ezpaymerchants.remoteMethod(
+        'createSubMerchantAccount', {
+            http: {
+                verb: 'post'
+            },
+            description: [""],
+            accepts: [
+                {
+                    arg: 'merchantId', type: 'string', required: true, http: { source: 'query' }
+                },
+                {
+                    arg: 'payerId', type: 'string', required: true, http: { source: 'query' }
+                }
+            ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaymerchants.createSubMerchantAccount = (merchantId, payerId, cb) => {
+        /*
+        1.
+        2. 
+        3. 
+        */
+    }
+
+
+
+    Ezpaymerchants.remoteMethod(
         'attachPayerWithMerchant', {
             http: {
                 verb: 'post'
