@@ -998,4 +998,31 @@ module.exports = function(Ezpaypaymenttransactions) {
 
       */
     }
+
+
+    Ezpaypaymenttransactions.remoteMethod(
+        'makeRefund', {
+            http: {
+                verb: 'post'
+            },
+            description: ["This request will provide transaction details"],
+            accepts: [{
+                arg: 'data',
+                type: 'string',
+                required: true,
+                http: {
+                    source: 'body'
+                }
+            }, ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaypaymenttransactions.makeRefund = (data, cb) => {
+
+    }
+
 };
