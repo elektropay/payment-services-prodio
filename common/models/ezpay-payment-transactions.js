@@ -176,9 +176,14 @@ module.exports = function(Ezpaypaymenttransactions) {
         if (!isNull(paymentInfo["meta"])) {
             paymentInfo = paymentInfo["meta"];
         }
+        let _surl = url + "/ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["successUrl"] + "&success=true";
+        let _furl = url + "/ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["failureUrl"] + "&success=false";
 
-        paymentInfo["successUrl"] = url + "ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["successUrl"] + "&success=true";
-        paymentInfo["failureUrl"] = url + "ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["failureUrl"] + "&success=false";
+        _furl = _furl.replace("//","/");
+        _surl = _surl.replace("//","/");
+
+        paymentInfo["successUrl"] = _surl;
+        paymentInfo["failureUrl"] = _furl;
         //console.log(" \n \n paymentInfo==>"+JSON.stringify(paymentInfo));
 
         funMakeDirectPaymentInGateway({
@@ -1000,6 +1005,11 @@ module.exports = function(Ezpaypaymenttransactions) {
     }
 
 
+    async function funMakeRefundInGateway(payload) {
+        return await paymentAdapter.makeRefund(payload);
+    }
+
+
     Ezpaypaymenttransactions.remoteMethod(
         'makeRefund', {
             http: {
@@ -1022,6 +1032,39 @@ module.exports = function(Ezpaypaymenttransactions) {
     );
 
     Ezpaypaymenttransactions.makeRefund = (data, cb) => {
+        let _payload = data;
+        if (!isNull(payloadJson["meta"])) {
+            _payload = payloadJson["meta"];
+        }
+
+        funMakeRefundInGateway({"paymentInfo":_payload}).then(sdkResponse => {
+
+            let savePayment = {
+                "merchantId": _payload["merchantId"],
+                "payerId": _payload["payerId"],
+                "totalAmount": parseFloat(_payload["amount"]),
+                "isRecurring": false,
+                "payableDate": new Date(),
+                "transactionStatus": "REFUND",
+                "metaData": _payload,
+                "isActive": true,
+                "createdAt": new Date()
+            };
+
+            Ezpaypaymenttransactions.create(savePayment).then(res => {
+                cb(null, res);
+            }).catch(error => {
+                cb(new HttpErrors.InternalServerError('Server Error', {
+                    expose: false
+                }));
+            });
+        }).catch(error => {
+            console.error(error);
+            let _msg = isNull(error["message"]) ? 'Internal Server Error' : error["message"];
+            cb(new HttpErrors.InternalServerError(_msg, {
+                expose: false
+            }));
+        })
 
     }
 
