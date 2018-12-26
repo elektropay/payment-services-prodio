@@ -412,7 +412,7 @@ module.exports = function(Ezpaymerchants) {
             description: ["It will register the subscriber as merchant into payment gateway."],
             accepts: [{
                     arg: 'data',
-                    type: 'string',
+                    type: 'object',
                     required: true,
                     http: {
                         source: 'body'
