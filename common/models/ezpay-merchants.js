@@ -405,25 +405,17 @@ module.exports = function(Ezpaymerchants) {
 
 
     Ezpaymerchants.remoteMethod(
-        'attachPayerWithMerchant', {
+        'attachPayerWithMerchants', {
             http: {
                 verb: 'post'
             },
             description: ["It will register the subscriber as merchant into payment gateway."],
             accepts: [{
-                    arg: 'merchantId',
+                    arg: 'data',
                     type: 'string',
                     required: true,
                     http: {
-                        source: 'query'
-                    }
-                },
-                {
-                    arg: 'payerId',
-                    type: 'string',
-                    required: true,
-                    http: {
-                        source: 'query'
+                        source: 'body'
                     }
                 }
             ],
@@ -434,34 +426,35 @@ module.exports = function(Ezpaymerchants) {
         }
     );
 
-    Ezpaymerchants.attachPayerWithMerchant = (merchantId, payerId, cb) => {
-        Ezpaymerchants.findById(merchantId).then(merchantInfo => {
+    Ezpaymerchants.attachPayerWithMerchants = (data, cb) => {
 
-            if (isValidObject(merchantInfo)) {
-                Ezpaymerchants.app.models.ezpayPayees.findById(payerId).then(payeeInfo=>{
-                    if(isValidObject(payeeInfo)){
-                        funCreateMerchantPayeeRelation(merchantId,payerId);
-                        cb(null,{"success":true});
-                    }else{
-                       return cb(new HttpErrors.InternalServerError('Invalid Payer Id', {
-                            expose: false
-                        })); 
-                    }
-                }).catch(error => {
-                    return cb(new HttpErrors.InternalServerError('Internal Server Error', {
-                        expose: false
-                    }));
+        if(!isNull(data["meta"])){
+            data = data["meta"];
+        }
+
+        let merchantIds = String(data["merchantIds"]).split(",");
+        let payerId = data["payerId"];
+        
+        Ezpaymerchants.app.models.ezpayPayees.findById(payerId).then(payeeInfo=>{
+            if(isValidObject(payeeInfo)){
+                async.each(merchantIds,function(item,callbk){
+                    funCreateMerchantPayeeRelation(item,payerId);
+                    callbk();
+                },function(){
+                     cb(null,{"success":true});
                 });
             }else{
-                return cb(new HttpErrors.InternalServerError('Invalid Merchant Id', {
+               return cb(new HttpErrors.InternalServerError('Invalid Payer Id', {
                     expose: false
-                }));
+                })); 
             }
         }).catch(error => {
             return cb(new HttpErrors.InternalServerError('Internal Server Error', {
                 expose: false
             }));
         });
+            
+        
     }
 
 
