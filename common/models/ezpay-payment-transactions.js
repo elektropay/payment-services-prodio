@@ -163,13 +163,13 @@ module.exports = function(Ezpaypaymenttransactions) {
 
     Ezpaypaymenttransactions.directPayment = (paymentInfo, req, cb) => {
 
-         let url = "";
-        if(!isNull(paymentInfo["BASE_URL"])){
+        let url = "";
+        if (!isNull(paymentInfo["BASE_URL"])) {
             url = paymentInfo["BASE_URL"];
-        }else{
-            if(!isNull(req)){
+        } else {
+            if (!isNull(req)) {
                 req = JSON.parse(CircularJSON.stringify(req));
-                url = req.headers.origin ;
+                url = req.headers.origin;
             }
         }
 
@@ -179,28 +179,89 @@ module.exports = function(Ezpaypaymenttransactions) {
         let _surl = url + "/ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["successUrl"] + "&success=true";
         let _furl = url + "/ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["failureUrl"] + "&success=false";
 
-        _furl = _furl.replace("//","/");
-        _surl = _surl.replace("//","/");
+        _furl = _furl.replace("//", "/");
+        _surl = _surl.replace("//", "/");
 
         paymentInfo["successUrl"] = _surl;
         paymentInfo["failureUrl"] = _furl;
+
+        let cardId = "";
+        if (!isNull(paymentInfo["cardId"])) {
+            cardId = paymentInfo["cardId"];
+        }
+
+        let transactionId = "";
+        if (!isNull(paymentInfo["transactionId"])) {
+            transactionId = paymentInfo["transactionId"];
+        }
         //console.log(" \n \n paymentInfo==>"+JSON.stringify(paymentInfo));
 
-        funMakeDirectPaymentInGateway({
-            "paymentInfo": paymentInfo
-        }).then(sdkResponse => {
-            console.log(sdkResponse);
-            cb(null, {
-                "success": true,
-                "body": sdkResponse
-            });
+
+
+        Ezpaypaymenttransactions.findById(transactionId).then(transInfo => {
+            if (isValidObject(transInfo)) {
+                if (transInfo["transactionStatus"] == "PAID") {
+                    cb(new HttpErrors.InternalServerError('You have Already Paid for the transaction!', {
+                        expose: false
+                    }));
+                } else {
+
+                    funMakeDirectPaymentInGateway({
+                        "paymentInfo": paymentInfo
+                    }).then(sdkResponse => {
+                        console.log(sdkResponse);
+
+                        transInfo.updateAttributes({
+                            "transactionStatus": "PAID",
+                            "paymentDate": new Date()
+                        }).then(updatedCount => {
+                            cb(null, updatedCount);
+                        }).catch(error => {
+                            cb(new HttpErrors.InternalServerError('Server Error', {
+                                expose: false
+                            }));
+                        });
+
+                    }).catch(error => {
+
+                        // transInfo.updateAttributes({
+                        //     "transactionStatus": "FAILED",
+                        //     "paymentDate": new Date()
+                        // }).then(updatedCount => {
+                        //     console.error(error);
+                        //     let _msg = isNull(error["message"]) ? 'Internal Server Error' : error["message"];
+                        //     cb(new HttpErrors.InternalServerError(_msg, {
+                        //         expose: false
+                        //     }));
+                        // }).catch(error => {
+                        //     cb(new HttpErrors.InternalServerError('Server Error', {
+                        //         expose: false
+                        //     }));
+                        // });
+
+                        console.error(error);
+                        let _msg = isNull(error["message"]) ? 'Internal Server Error' : error["message"];
+                        cb(new HttpErrors.InternalServerError(_msg, {
+                            expose: false
+                        }));
+
+
+                    })
+
+
+
+                }
+            } else {
+                cb(new HttpErrors.InternalServerError('Invalid Transaction ID.', {
+                    expose: false
+                }));
+            }
         }).catch(error => {
-            console.error(error);
-            let _msg = isNull(error["message"]) ? 'Internal Server Error' : error["message"];
-            cb(new HttpErrors.InternalServerError(_msg, {
+            cb(new HttpErrors.InternalServerError('Server Error', {
                 expose: false
             }));
-        })
+        });
+
 
 
 
@@ -1037,7 +1098,9 @@ module.exports = function(Ezpaypaymenttransactions) {
             _payload = payloadJson["meta"];
         }
 
-        funMakeRefundInGateway({"paymentInfo":_payload}).then(sdkResponse => {
+        funMakeRefundInGateway({
+            "paymentInfo": _payload
+        }).then(sdkResponse => {
 
             let savePayment = {
                 "merchantId": _payload["merchantId"],
