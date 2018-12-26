@@ -69,7 +69,7 @@ module.exports = function(Ezpaypayees) {
           console.log("No merhant id");
           Ezpaypayees.findOne({
                 "where": {
-                    "email": payeeInfo["email"]
+                    "email": String(payeeInfo["email"]).toLowerCase()
                 }
             }, function(err, payeeData) {
                 if (err) {
@@ -78,9 +78,17 @@ module.exports = function(Ezpaypayees) {
                     }));
                 } else {
                     if (isValidObject(payeeData)) {
-                        cb(new HttpErrors.InternalServerError('Email Id already exists.', {
-                            expose: false
-                        }));
+                        //Check if this payer already attached with any merchant or not.
+                        //if yes, send valid success response
+                        //if not
+                        if(isNull(payeeData["merchantId"])){
+                            cb(new HttpErrors.InternalServerError('Email Id already exists.', {
+                                expose: false
+                            }));
+                        }else{
+                            cb(null,{"success":true,"isAlreadyExists":true,"payerId":payeeData["payeeId"]});
+                        }
+                        
                     } else {
 
                         let savePayee = {
@@ -109,18 +117,6 @@ module.exports = function(Ezpaypayees) {
                                 expose: false
                             }));
                         });
-
-                        // Ezpaypayees.findOne({"where":{"mobileNumber":payeeInfo["mobileNumber"]}},function(err,payeeData){
-                        //      if(err){
-                        //           cb(new HttpErrors.InternalServerError('Query Error', {expose: false}));
-                        //      }else{
-                        //           if (isValidObject(payeeData)) {
-                        //                funCreateMerchantPayeeRelation(merchantId,payeeData["payeeId"],cb);
-                        //           }else{
-
-                        //           }
-                        //      }
-                        // });
                     }
                 }
             })
