@@ -494,7 +494,8 @@ module.exports = function(Ezpaymerchants) {
         }
 
         console.log(merchantInfo);
-        Ezpaymerchants.findOne({"merchantId":merchantId}).then(merchantData=>{
+        //Ezpaymerchants.findOne({"merchantId":merchantId}).then(merchantData=>{
+        Ezpaymerchants.findById(merchantId).then(merchantData=>{
             if(isValidObject(merchantData)){
                 let tmpData = merchantData;
                 tmpData["userInfo"] = merchantInfo["basic"];
