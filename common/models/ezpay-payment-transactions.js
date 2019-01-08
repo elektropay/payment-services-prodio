@@ -68,33 +68,40 @@ module.exports = function(Ezpaypaymenttransactions) {
 
         const paymentDetails = {
             currency: "USD",
-            isRecurring: false,
-            dueDate: "MM/DD/YYYY",
+            displayItems: [
+                {
+                    serviceCode: "#1245",
+                    serviceName: "Teeth Cleaning",
+                    description: "laurem ipsum",
+                    amount: {
+                        value: "2.50",
+                        tax:"",
+                        discount:""
+                    }
+                },
+                {
+                    serviceCode: "#1247",
+                    serviceName: "Teeth Cleaning",
+                    description: "laurem ipsum",
+                    amount: {
+                        value: "2.50",
+                        tax:"",
+                        discount:""
+                    }
+                }
+            ],
             total: {
                 label: "My Merchant",
                 amount: {
-                    value: parseFloat(paymentInfo["amount"]),
-                    currency: "USD"
-                },
-            },
-            displayItems: [{
-                    label: "Tax",
-                    amount: {
-                        value: "2.50",
-                        currency: "USD"
-                    },
-                },
-                {
-                    label: "Ground Shipping",
-                    amount: {
-                        value: "5.00",
-                        currency: "USD"
-                    },
+                    subTotal:"",
+                    tax:"",
+                    discount:"",
+                    value: parseFloat(paymentInfo["totalAmount"])
                 }
-            ],
-            data: {
-                paymentMethodType: "debit"
             },
+            data: {
+                paymentMethodType: "CREDIT_CARD"
+            }
         };
 
         let totalAmount = paymentDetails["total"]["amount"]["value"];
@@ -102,6 +109,9 @@ module.exports = function(Ezpaypaymenttransactions) {
         let savePayment = {
             "merchantId": merchantId,
             "payerId": paymentInfo["payerId"],
+            "title": paymentInfo["title"],
+            "invoiceNumber": paymentInfo["invoiceNumber"],
+            "invoiceDate": paymentInfo["invoiceDate"],
             "totalAmount": parseFloat(paymentInfo["amount"]),
             "isRecurring": paymentInfo["isRecurring"],
             "payableDate": paymentInfo["payableDate"],
