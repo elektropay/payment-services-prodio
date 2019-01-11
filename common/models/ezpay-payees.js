@@ -97,7 +97,7 @@ module.exports = function(Ezpaypayees) {
                             "lastName": isValid(payeeInfo["lastName"]) ? payeeInfo["lastName"] : "",
                             "email": isValid(payeeInfo["email"]) ? String(payeeInfo["email"]).toLowerCase() : "",
                             "mobileNumber": isValid(payeeInfo["mobileNumber"]) ? payeeInfo["mobileNumber"] : "",
-                            "address": isValid(payeeInfo["address"]) ? payeeInfo["address"] : "",
+                            "address": (payeeInfo["address"]) ? payeeInfo["address"] : "",
                             "paymentMethod": isValid(payeeInfo["paymentMethod"]) ? payeeInfo["paymentMethod"] : "",
                             "isActive": true,
                             "createdAt": new Date(),
