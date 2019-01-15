@@ -76,7 +76,7 @@ module.exports = function(Ezpaypaymenttransactions) {
             "title": paymentInfo["title"],
             "invoiceNumber": paymentInfo["invoiceNumber"],
             "invoiceDate": paymentInfo["invoiceDate"],
-            "totalAmount": parseFloat(paymentInfo["amount"]),
+            "totalAmount": parseFloat(totalAmount),
             "isRecurring": paymentInfo["isRecurring"],
             "payableDate": paymentInfo["payableDate"],
             "transactionStatus": "PENDING",
