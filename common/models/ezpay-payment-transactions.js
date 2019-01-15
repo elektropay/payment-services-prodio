@@ -66,43 +66,7 @@ module.exports = function(Ezpaypaymenttransactions) {
             paymentInfo = paymentInfo["meta"];
         }
 
-        const paymentDetails = {
-            currency: "USD",
-            displayItems: [
-                {
-                    serviceCode: "#1245",
-                    serviceName: "Teeth Cleaning",
-                    description: "laurem ipsum",
-                    amount: {
-                        value: "2.50",
-                        tax:"",
-                        discount:""
-                    }
-                },
-                {
-                    serviceCode: "#1247",
-                    serviceName: "Teeth Cleaning",
-                    description: "laurem ipsum",
-                    amount: {
-                        value: "2.50",
-                        tax:"",
-                        discount:""
-                    }
-                }
-            ],
-            total: {
-                label: "My Merchant",
-                amount: {
-                    subTotal:"",
-                    tax:"",
-                    discount:"",
-                    value: parseFloat(paymentInfo["totalAmount"])
-                }
-            },
-            data: {
-                paymentMethodType: "CREDIT_CARD"
-            }
-        };
+        const paymentDetails = paymentInfo;
 
         let totalAmount = paymentDetails["total"]["amount"]["value"];
 
@@ -116,11 +80,19 @@ module.exports = function(Ezpaypaymenttransactions) {
             "isRecurring": paymentInfo["isRecurring"],
             "payableDate": paymentInfo["payableDate"],
             "transactionStatus": "PENDING",
-            "metaData": paymentDetails,
             "isActive": true,
             "createdAt": new Date()
         };
 
+        delete paymentDetails["payerId"];
+        delete paymentDetails["title"];
+        delete paymentDetails["invoiceNumber"];
+        delete paymentDetails["invoiceDate"];
+        delete paymentDetails["amount"];
+        delete paymentDetails["isRecurring"];
+        delete paymentDetails["payableDate"];
+
+        savePayment["metaData"] = paymentDetails;
 
         Ezpaypaymenttransactions.create(savePayment).then(transactionInfo => {
             cb(null, {
