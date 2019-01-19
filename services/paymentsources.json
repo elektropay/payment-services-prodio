@@ -26,10 +26,5 @@
         "MERCHANT_KEY": "7LJJ3-L7ZCZ-7GWSU-2OBMB-8E22W",
         "connector": "tsys-connector-prodio",
         "is_active": true
-    },
-    "openEdge":
-    {
-        "connector": "openEdge-connector-prodio",
-        "is_active": true
     }
 }
