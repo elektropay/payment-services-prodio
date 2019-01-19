@@ -64,11 +64,25 @@ module.exports = function(Ezpaymerchants) {
         
         console.log(paymentObj);
         const payload = {
-                "action": "GET_PAYERS_LISTING",
-                        "meta": {
-                            "merchantId":"bb15dc52-86e2-45c0-b5ab-889aebf7a1d6" /*(You can get this merchantId from the response of createMerchant or getMerchantId function)*/  
-                        }
-            };
+                  "action": "CREATE_PAYER",
+                  "meta": {
+                    "merchantId": "cc0a4975-6e45-4442-bb60-ab4c10855f7f",
+                    "payerInfo": {
+                      "firstName": "Sandeep ",
+                      "lastName": "Dhobi",
+                      "email": "sandeep@prodio.in",
+                      "mobileNumber": 7666881348,
+                      "address": {
+                        "country": "",
+                        "state": "",
+                        "city": "",
+                        "streetAddress": "",
+                        "zipCode": ""
+                      },
+                      "paymentMethod": ""
+                    }
+                  }
+                };
 
         paymentObj.execute(payload, function(response) {
             if(typeof response == "string" || typeof response === "string"){
