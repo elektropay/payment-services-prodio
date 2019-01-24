@@ -19,7 +19,7 @@ const {
 
 const CircularJSON = require('circular-json');
 
-const isNull = function(val) {
+const isNull = function (val) {
     if (typeof val === 'string') {
         val = val.trim();
     }
@@ -29,7 +29,7 @@ const isNull = function(val) {
     return false;
 };
 
-module.exports = function(Ezpaypaymenttransactions) {
+module.exports = function (Ezpaypaymenttransactions) {
 
     Ezpaypaymenttransactions.remoteMethod(
         'requestPayment', {
@@ -38,21 +38,21 @@ module.exports = function(Ezpaypaymenttransactions) {
             },
             description: ["This request will initiate a payment request transaction"],
             accepts: [{
-                    arg: 'merchantId',
-                    type: 'string',
-                    required: true,
-                    http: {
-                        source: 'query'
-                    }
-                },
-                {
-                    arg: 'paymentInfo',
-                    type: 'object',
-                    required: true,
-                    http: {
-                        source: 'body'
-                    }
+                arg: 'merchantId',
+                type: 'string',
+                required: true,
+                http: {
+                    source: 'query'
                 }
+            },
+            {
+                arg: 'paymentInfo',
+                type: 'object',
+                required: true,
+                http: {
+                    source: 'body'
+                }
+            }
             ],
             returns: {
                 type: 'object',
@@ -67,18 +67,22 @@ module.exports = function(Ezpaypaymenttransactions) {
         }
 
         const paymentDetails = paymentInfo;
-
-        let totalAmount = paymentDetails["total"]["amount"]["value"];
-
+        let totalAmount = '';
+        if (paymentDetails.total) {
+            totalAmount = paymentDetails.total.amount ? paymentDetails.total.amount.value : '';
+        }
+        else {
+            totalAmount = '';
+        }
         let savePayment = {
             "merchantId": merchantId,
-            "payerId": paymentInfo["payerId"],
-            "title": paymentInfo["title"],
-            "invoiceNumber": paymentInfo["invoiceNumber"],
-            "invoiceDate": paymentInfo["invoiceDate"],
-            "totalAmount": parseFloat(totalAmount),
-            "isRecurring": paymentInfo["isRecurring"],
-            "payableDate": paymentInfo["payableDate"],
+            "payerId": paymentInfo.payerId ? paymentInfo.payerId : '',
+            "title": paymentInfo.title ? paymentInfo.title : '',
+            "invoiceNumber": paymentInfo.invoiceNumber ? paymentInfo.invoiceNumber : '',
+            "invoiceDate": paymentInfo.invoiceDate ? paymentInfo.invoiceDate : '',
+            "totalAmount": parseFloat(totalAmount) ? parseFloat(totalAmount) : '',
+            "isRecurring": paymentInfo.isRecurring ? paymentInfo.isRecurring : '',
+            "payableDate": paymentInfo.payableDate ? paymentInfo.payableDate : '',
             "transactionStatus": "PENDING",
             "isActive": true,
             "createdAt": new Date()
@@ -92,19 +96,23 @@ module.exports = function(Ezpaypaymenttransactions) {
         delete paymentDetails["isRecurring"];
         delete paymentDetails["payableDate"];
 
-        savePayment["metaData"] = paymentDetails;
 
+        savePayment["metaData"] = paymentDetails;
+        console.log("savePayment", savePayment);
         Ezpaypaymenttransactions.create(savePayment).then(transactionInfo => {
+            console.log("transactionInfo", transactionInfo);
             cb(null, {
                 "success": true,
                 "transactionId": transactionInfo["transactionId"]
             });
         }).catch(error => {
+            console.log("error", error);
             cb(new HttpErrors.InternalServerError('Error while creating new payment transaction.', {
                 expose: false
             }));
         });
     }
+
 
     async function funMakePaymentInGateway(payload) {
         return await paymentAdapter.makePayment(payload);
@@ -121,20 +129,20 @@ module.exports = function(Ezpaypaymenttransactions) {
             },
             description: ["This request will initiate a payment request transaction"],
             accepts: [{
-                    arg: 'paymentInfo',
-                    type: 'object',
-                    required: false,
-                    http: {
-                        source: 'body'
-                    }
-                },
-                {
-                    arg: 'req',
-                    type: 'object',
-                    http: ctx => {
-                        return ctx.req;
-                    }
-                },
+                arg: 'paymentInfo',
+                type: 'object',
+                required: false,
+                http: {
+                    source: 'body'
+                }
+            },
+            {
+                arg: 'req',
+                type: 'object',
+                http: ctx => {
+                    return ctx.req;
+                }
+            },
             ],
             returns: {
                 type: 'object',
@@ -274,37 +282,37 @@ module.exports = function(Ezpaypaymenttransactions) {
             },
             description: ["This request will initiate a payment request transaction"],
             accepts: [{
-                    arg: 'transactionId',
-                    type: 'string',
-                    required: true,
-                    http: {
-                        source: 'query'
-                    }
-                },
-                {
-                    arg: 'payerId',
-                    type: 'string',
-                    required: true,
-                    http: {
-                        source: 'query'
-                    }
-                },
-                {
-                    arg: 'cardId',
-                    type: 'string',
-                    required: false,
-                    http: {
-                        source: 'query'
-                    }
-                },
-                {
-                    arg: 'cardInfo',
-                    type: 'object',
-                    required: false,
-                    http: {
-                        source: 'body'
-                    }
+                arg: 'transactionId',
+                type: 'string',
+                required: true,
+                http: {
+                    source: 'query'
                 }
+            },
+            {
+                arg: 'payerId',
+                type: 'string',
+                required: true,
+                http: {
+                    source: 'query'
+                }
+            },
+            {
+                arg: 'cardId',
+                type: 'string',
+                required: false,
+                http: {
+                    source: 'query'
+                }
+            },
+            {
+                arg: 'cardInfo',
+                type: 'object',
+                required: false,
+                http: {
+                    source: 'body'
+                }
+            }
             ],
             returns: {
                 type: 'object',
@@ -314,6 +322,7 @@ module.exports = function(Ezpaypaymenttransactions) {
     );
 
     Ezpaypaymenttransactions.processPayment = (transactionId, payerId, cardId, cardInfo, cb) => {
+        console.log("cardInfi", cardInfo);
         if (!isNull(cardInfo["meta"])) {
             cardInfo = cardInfo["meta"]["cardInfo"];
         }
@@ -392,6 +401,11 @@ module.exports = function(Ezpaypaymenttransactions) {
                                         }));
                                     })
                                 } else {
+
+                                    console.log("transInfo", transInfo);
+                                    var success_url = `https://prodiodev.justoutdoor.in/payment.html?${transInfo.transactionId}`;
+                                    transInfo.return_url = success_url;
+                                    console.log("return url", transInfo.return_url);
                                     //take direct payment using card info
                                     let _payload = {
                                         "cardInfo": cardInfo,
@@ -399,18 +413,28 @@ module.exports = function(Ezpaypaymenttransactions) {
                                         "paymentInfo": transInfo
                                     };
                                     funMakePaymentInGateway(_payload).then(sdkResponse => {
-                                        transInfo.updateAttributes({
-                                            "gatewayTransactionId": sdkResponse["body"]["gatewayTransactionId"],
-                                            "cardId": cardId,
-                                            "transactionStatus": "PAID",
-                                            "paymentDate": new Date()
-                                        }).then(updatedCount => {
-                                            cb(null, updatedCount);
-                                        }).catch(error => {
-                                            cb(new HttpErrors.InternalServerError('Server Error', {
+                                        console.log("sdkResponse", sdkResponse);
+
+                                        if (sdkResponse.body) {
+                                            transInfo.updateAttributes({
+                                                "gatewayTransactionId": sdkResponse.body.gatewayTransactionId ? sdkResponse.body.gatewayTransactionId : '',
+                                                "paymentUrl": sdkResponse.body.payRedirectUrl ? sdkResponse.body.payRedirectUrl : '',
+                                                "cardId": cardId,
+                                                "transactionStatus": sdkResponse.body.gatewayTransactionId ? "PAID" : "PENDING",
+                                                "paymentDate": new Date()
+                                            }).then(updatedCount => {
+                                                cb(null, updatedCount);
+                                            }).catch(error => {
+                                                cb(new HttpErrors.InternalServerError('Server Error', {
+                                                    expose: false
+                                                }));
+                                            });
+                                        } else {
+                                            cb(new HttpErrors.InternalServerError('Transaction failed', {
                                                 expose: false
                                             }));
-                                        });
+                                        }
+
                                     }).catch(error => {
                                         console.error(error);
                                         let _msg = isNull(error["message"]) ? 'Internal Server Error' : error["message"];
@@ -421,9 +445,6 @@ module.exports = function(Ezpaypaymenttransactions) {
 
                                 }
                             }
-
-
-
                         }
                     } else {
                         cb(new HttpErrors.InternalServerError('Invalid Transaction ID.', {
@@ -448,6 +469,7 @@ module.exports = function(Ezpaypaymenttransactions) {
     }
 
 
+
     Ezpaypaymenttransactions.remoteMethod(
         'getTransactionsListing', {
             http: {
@@ -455,29 +477,29 @@ module.exports = function(Ezpaypaymenttransactions) {
             },
             description: ["This request will initiate a payment request transaction"],
             accepts: [{
-                    arg: 'merchantId',
-                    type: 'string',
-                    required: true,
-                    http: {
-                        source: 'query'
-                    }
-                },
-                {
-                    arg: 'pageNo',
-                    type: 'string',
-                    required: true,
-                    http: {
-                        source: 'query'
-                    }
-                },
-                {
-                    arg: 'filterCriteria',
-                    type: 'object',
-                    required: false,
-                    http: {
-                        source: 'body'
-                    }
+                arg: 'merchantId',
+                type: 'string',
+                required: true,
+                http: {
+                    source: 'query'
                 }
+            },
+            {
+                arg: 'pageNo',
+                type: 'string',
+                required: true,
+                http: {
+                    source: 'query'
+                }
+            },
+            {
+                arg: 'filterCriteria',
+                type: 'object',
+                required: false,
+                http: {
+                    source: 'body'
+                }
+            }
             ],
             returns: {
                 type: 'object',
@@ -524,29 +546,29 @@ module.exports = function(Ezpaypaymenttransactions) {
             },
             description: ["This request will initiate a payment request transaction"],
             accepts: [{
-                    arg: 'payerId',
-                    type: 'string',
-                    required: true,
-                    http: {
-                        source: 'query'
-                    }
-                },
-                {
-                    arg: 'pageNo',
-                    type: 'string',
-                    required: true,
-                    http: {
-                        source: 'query'
-                    }
-                },
-                {
-                    arg: 'filterCriteria',
-                    type: 'object',
-                    required: false,
-                    http: {
-                        source: 'body'
-                    }
+                arg: 'payerId',
+                type: 'string',
+                required: true,
+                http: {
+                    source: 'query'
                 }
+            },
+            {
+                arg: 'pageNo',
+                type: 'string',
+                required: true,
+                http: {
+                    source: 'query'
+                }
+            },
+            {
+                arg: 'filterCriteria',
+                type: 'object',
+                required: false,
+                http: {
+                    source: 'body'
+                }
+            }
             ],
             returns: {
                 type: 'object',
@@ -608,7 +630,7 @@ module.exports = function(Ezpaypaymenttransactions) {
                 http: {
                     source: 'query'
                 }
-            }, ],
+            },],
             returns: {
                 type: 'object',
                 root: true
@@ -624,8 +646,8 @@ module.exports = function(Ezpaypaymenttransactions) {
             {
                 $match: {
                     $and: [
-                        {merchantId:merchantId},
-                        {"transactionStatus": "PENDING"}
+                        { merchantId: merchantId },
+                        { "transactionStatus": "PENDING" }
                     ]
                 }
             },
@@ -641,44 +663,44 @@ module.exports = function(Ezpaypaymenttransactions) {
                 }
             },
             {
-                "$project":{
-                    "_id":1,
-                    "grand_total":1,
-                    "Payer":1
+                "$project": {
+                    "_id": 1,
+                    "grand_total": 1,
+                    "Payer": 1
                 }
             }
-        
+
         ], function (err, res) {
             console.log(res);
-            if(res.length){
-                
-                async.each(res,function(item,callbk){
+            if (res.length) {
+
+                async.each(res, function (item, callbk) {
                     allPayerArr[item["_id"]["id"]] = item["grand_total"];
                     //allPayerArr.push({"payeeId":item["_id"]["id"],"grand_total":item["grand_total"]});
                     allPayerIds.push(item["_id"]["id"]);
                     callbk();
-                },function(){
+                }, function () {
                     //console.log(allPayerArr); console.log(allPayerIds);
-                    Ezpaypaymenttransactions.app.models.ezpayPayees.find({"where":{"payeeId":{"inq": allPayerIds }}}).then(allPayers=>{
+                    Ezpaypaymenttransactions.app.models.ezpayPayees.find({ "where": { "payeeId": { "inq": allPayerIds } } }).then(allPayers => {
                         //let resultArr = [allPayers, allPayerArr].reduce((a, b) => a.map((c, i) => Object.assign({}, c, b[i])));
                         //let resultArr = mergeRecursive(allPayers,allPayerArr);
                         let tmpArr = []; let tmpObj = {};
                         allPayers = JSON.parse(JSON.stringify(allPayers));
-                        async.each(allPayers,function(itemP,cllbk){
+                        async.each(allPayers, function (itemP, cllbk) {
                             tmpObj = {};
                             tmpObj = itemP;
                             tmpObj["totalAmount"] = allPayerArr[itemP["payeeId"]];
                             tmpArr.push(tmpObj);
                             cllbk();
-                        },function(){
-                            
+                        }, function () {
+
                             cb(null, tmpArr);
-                        });                        
-                    }).catch(err=>{
+                        });
+                    }).catch(err => {
                         console.log(err)
                     });
                 });
-            }else{
+            } else {
                 cb(null, res);
             }
         });
@@ -698,7 +720,7 @@ module.exports = function(Ezpaypaymenttransactions) {
                 http: {
                     source: 'query'
                 }
-            }, ],
+            },],
             returns: {
                 type: 'object',
                 root: true
@@ -738,21 +760,21 @@ module.exports = function(Ezpaypaymenttransactions) {
             },
             description: ["This request will provide transaction details"],
             accepts: [{
-                    arg: 'payerId',
-                    type: 'string',
-                    required: true,
-                    http: {
-                        source: 'query'
-                    }
-                },
-                {
-                    arg: 'merchantId',
-                    type: 'string',
-                    required: false,
-                    http: {
-                        source: 'query'
-                    }
-                },
+                arg: 'payerId',
+                type: 'string',
+                required: true,
+                http: {
+                    source: 'query'
+                }
+            },
+            {
+                arg: 'merchantId',
+                type: 'string',
+                required: false,
+                http: {
+                    source: 'query'
+                }
+            },
             ],
             returns: {
                 type: 'object',
@@ -774,22 +796,22 @@ module.exports = function(Ezpaypaymenttransactions) {
         }
         var rewardCollection = Ezpaypaymenttransactions.getDataSource().connector.collection(Ezpaypaymenttransactions.modelName);
         var cursorTest = rewardCollection.aggregate([{
-                $match: {
-                    $and: condArr
-                }
-            },
-            {
-                "$group": {
-                    "_id": {
-                        transactionStatus: "$transactionStatus",
-                    },
-                    "grand_total": {
-                        "$sum": "$totalAmount"
-                    },
-
-                }
+            $match: {
+                $and: condArr
             }
-        ], function(err, cursor) {
+        },
+        {
+            "$group": {
+                "_id": {
+                    transactionStatus: "$transactionStatus",
+                },
+                "grand_total": {
+                    "$sum": "$totalAmount"
+                },
+
+            }
+        }
+        ], function (err, cursor) {
             if (err) {
                 cb(new HttpErrors.InternalServerError(err, {
                     expose: false
@@ -801,7 +823,7 @@ module.exports = function(Ezpaypaymenttransactions) {
                     "totalCollections": "0.00"
                 };
 
-                async.each(cursor, function(item, callbk) {
+                async.each(cursor, function (item, callbk) {
                     if (item["_id"]["transactionStatus"] == "DONE" || item["_id"]["transactionStatus"] == "PAID") {
                         retJson["totalCollections"] = item["grand_total"]
                     }
@@ -810,7 +832,7 @@ module.exports = function(Ezpaypaymenttransactions) {
                     }
                     callbk();
 
-                }, function() {
+                }, function () {
                     cb(null, retJson);
                 });
 
@@ -834,7 +856,7 @@ module.exports = function(Ezpaypaymenttransactions) {
                 http: {
                     source: 'query'
                 }
-            }, ],
+            },],
             returns: {
                 type: 'object',
                 root: true
@@ -846,24 +868,24 @@ module.exports = function(Ezpaypaymenttransactions) {
 
         var rewardCollection = Ezpaypaymenttransactions.getDataSource().connector.collection(Ezpaypaymenttransactions.modelName);
         var cursorTest = rewardCollection.aggregate([{
-                $match: {
-                    $and: [{
-                        "merchantId": merchantId
-                    }, ]
-                }
-            },
-            {
-                "$group": {
-                    "_id": {
-                        transactionStatus: "$transactionStatus",
-                    },
-                    "grand_total": {
-                        "$sum": "$totalAmount"
-                    },
-
-                }
+            $match: {
+                $and: [{
+                    "merchantId": merchantId
+                },]
             }
-        ], function(err, cursor) {
+        },
+        {
+            "$group": {
+                "_id": {
+                    transactionStatus: "$transactionStatus",
+                },
+                "grand_total": {
+                    "$sum": "$totalAmount"
+                },
+
+            }
+        }
+        ], function (err, cursor) {
             if (err) {
                 cb(new HttpErrors.InternalServerError(err, {
                     expose: false
@@ -875,7 +897,7 @@ module.exports = function(Ezpaypaymenttransactions) {
                     "totalCollections": "0.00"
                 };
 
-                async.each(cursor, function(item, callbk) {
+                async.each(cursor, function (item, callbk) {
                     if (item["_id"]["transactionStatus"] == "DONE" || item["_id"]["transactionStatus"] == "PAID") {
                         retJson["totalCollections"] = item["grand_total"]
                     }
@@ -884,7 +906,7 @@ module.exports = function(Ezpaypaymenttransactions) {
                     }
                     callbk();
 
-                }, function() {
+                }, function () {
                     cb(null, retJson);
                 });
 
@@ -902,36 +924,36 @@ module.exports = function(Ezpaypaymenttransactions) {
             },
             description: ["This request will provide transaction details"],
             accepts: [{
-                    arg: 'data',
-                    type: 'object',
-                    required: true,
-                    http: {
-                        source: 'body'
-                    }
-                },
-                {
-                    arg: 'redirectUrl',
-                    type: 'string',
-                    required: true,
-                    http: {
-                        source: 'query'
-                    }
-                },
-                {
-                    arg: 'merchantId',
-                    type: 'string',
-                    required: false,
-                    http: {
-                        source: 'query'
-                    }
-                },
-                {
-                    arg: 'res',
-                    type: 'object',
-                    http: ctx => {
-                        return ctx.res;
-                    }
-                },
+                arg: 'data',
+                type: 'object',
+                required: true,
+                http: {
+                    source: 'body'
+                }
+            },
+            {
+                arg: 'redirectUrl',
+                type: 'string',
+                required: true,
+                http: {
+                    source: 'query'
+                }
+            },
+            {
+                arg: 'merchantId',
+                type: 'string',
+                required: false,
+                http: {
+                    source: 'query'
+                }
+            },
+            {
+                arg: 'res',
+                type: 'object',
+                http: ctx => {
+                    return ctx.res;
+                }
+            },
             ],
             returns: {
                 type: 'object',
@@ -1089,7 +1111,75 @@ module.exports = function(Ezpaypaymenttransactions) {
 }
 
       */
+    } 
+
+    Ezpaypaymenttransactions.remoteMethod(
+        'openEdgeWebhooks', {
+            http: {
+                verb: 'post'
+            },
+            description: ["This request will provide transaction details"],
+            accepts: [{
+                arg: 'data',
+                type: 'object',
+                required: true,
+                http: {
+                    source: 'body'
+                }
+            },
+            {
+                arg: 'redirectUrl',
+                type: 'string',
+                required: true,
+                http: {
+                    source: 'query'
+                }
+            }
+            ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+
+    Ezpaypaymenttransactions.openEdgeWebhooks = (data, redirectUrl, cb) => {
+        const transQuery = {
+            "where": {
+                "transactionId": data.transactionId
+            }
+        };
+        Ezpaypaymenttransactions.findById(data.transactionId).then(transactionInfo => {
+            if (transactionInfo !== null) {
+                let savePayment = {
+                    "merchantId": transactionInfo.merchantId,
+                    "payerId": transactionInfo.payerId,
+                    "totalAmount": parseFloat(transactionInfo.totalAmount),
+                    "isRecurring": false,
+                    "payableDate": new Date(),
+                    "transactionStatus": data.paymentStatus ? 'PAID' : 'PENDING',
+                    "isActive": true,
+                    "createdAt": new Date()
+                };
+                transactionInfo.updateAttributes(savePayment).then(updatedTransaction => {
+
+                    if (updatedTransaction.transactionStatus == 'PENDING') {
+                        return cb(null, { 'msg': 'Transaction Pending', 'data': null, 'status': 1 });
+                    }
+                    else {
+                        return cb(null, { 'msg': 'Transaction Successful.', 'data': null, 'status': 1 });
+                    }
+
+                    // res.redirect(redirectUrl);
+                }).catch(error => {
+                    return cb(null, { 'msg': 'Please try again.', 'data': null, 'status': 0 });
+                });
+
+            }
+        });
     }
+
 
 
     async function funMakeRefundInGateway(payload) {
@@ -1110,7 +1200,7 @@ module.exports = function(Ezpaypaymenttransactions) {
                 http: {
                     source: 'body'
                 }
-            }, ],
+            },],
             returns: {
                 type: 'object',
                 root: true

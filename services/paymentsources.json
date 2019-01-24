@@ -25,6 +25,14 @@
         "MERCHANT_SITE_ID": "DOUJQRYH",
         "MERCHANT_KEY": "7LJJ3-L7ZCZ-7GWSU-2OBMB-8E22W",
         "connector": "tsys-connector-prodio",
+        "is_active": false
+    },
+    "openEdge":
+    {
+        "XwebID":"800000022536",
+        "TerminalID":"80031235",
+        "AuthKey":"UWkZhCx6vK1BTa5DkMOaxMFbpOPo3H8N",
+        "connector": "open-edge-connector-prodio",
         "is_active": true
     }
 }
