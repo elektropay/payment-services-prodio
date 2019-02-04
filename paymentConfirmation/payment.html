@@ -1,10 +1,11 @@
 <div style=" text-align:center;color:black;">
     payment processing .... Please wait</div>
 <script type="text/javascript">
-   const BASE_URL = '`http://localhost:3010';
-   const successUrl = "https://prodiodev.justoutdoor.in";
-   const failureUrl = "https://prodiodev.justoutdoor.in";
-    function postData(data, site_url) {
+    //please provide base url
+    const BASE_URL = 'http://localhost:3010';
+
+
+    const postData = (data, site_url) => {
         let url = `${BASE_URL}/api/ezpayPaymentTransactions/openEdgeWebhooks?redirectUrl=${site_url}`;
         return fetch(url, {
             method: "POST",
@@ -12,48 +13,47 @@
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify(data), 
+            body: JSON.stringify(data),
         })
-            .then(response =>  response.json()); 
+            .then(response => response.json());
     }
 
-    function paymentStatus() {
+    const paymentStatus = () => {
         let transactionId = '';
-        let payerId = '';
-        let totalAmount = '';
+        let paymentSuccessUrl = '';
+        let paymentFailureUrl = '';
         let site_url = '';
         let paymentUrl = window.location.search;
-        let responseData = paymentUrl.split('&');
-        let transactionData = responseData[0];
-        let transactionUrl = transactionData.split('?');
-        transactionId = transactionUrl[1];
-        if (responseData[2] == 'response_code=1') {
+        let paymentUrlList = paymentUrl.split('?');
+        paymentUrlList = paymentUrlList[1].split('&');
+        if (paymentUrl.includes('response_code=1')) {
+            transactionId = paymentUrlList[0];
+            paymentSuccessUrl = paymentUrlList[1];
             let dataObj = {
                 "transactionId": transactionId,
                 "paymentStatus": true
             };
             alert('Payment successful.');
-             site_url = `${successUrl}?success=true`;
+            site_url = `${paymentSuccessUrl}?success=true`;
             postData(dataObj, site_url).then(data => {
-                window.location.href = site_url; 
-            }).catch(error => {
                 window.location.href = site_url;
+            }).catch(error => {
+                console.log("successsError", error);
             });
-           
         }
         else {
+            transactionId = paymentUrlList[0];
+            paymentFailureUrl = paymentUrlList[2];
             let dataObj = {
                 "transactionId": transactionId,
                 "paymentStatus": false
-            }
-            site_url =`${successUrl}?success=false`;
-            postData(dataObj, site_url).then(data => {
-                window.location.href = site_url;
-            
-            }).catch(error => {
-                window.location.href = site_url;
-            });
+            };
             alert('Payment Failed.');
+            postData(dataObj, paymentFailureUrl).then(data => {
+                window.location.href = paymentFailureUrl;
+            }).catch(error => {
+                console.log("FailureError", error);
+            });
         }
     }
     paymentStatus();
