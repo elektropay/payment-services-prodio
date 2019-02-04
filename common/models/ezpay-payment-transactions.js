@@ -30,7 +30,7 @@ const isNull = function (val) {
     }
     return false;
 };
-let paymentHtmlUrl = 'https://prodiodev.justoutdoor.in/payment.html';
+// let paymentHtmlUrl = 'https://prodiodev.justoutdoor.in/payment.html';
 module.exports = function (Ezpaypaymenttransactions) {
 
     Ezpaypaymenttransactions.remoteMethod(
@@ -407,11 +407,11 @@ module.exports = function (Ezpaypaymenttransactions) {
                                     let paymentReturnUrl = '';
                                     if (successUrl) {
                                         console.log("entererdddd", successUrl);
-                                        paymentReturnUrl = `${paymentHtmlUrl}?${transInfo.transactionId}&${successUrl}&${failureUrl}`;
+                                        paymentReturnUrl = `${transactionPayload.meta.paymentHtmlUrl}?${transInfo.transactionId}&${successUrl}&${failureUrl}`;
                                     }
                                     else {
                                         console.log("failedurl", failureUrl);
-                                        paymentReturnUrl = `${paymentHtmlUrl}?${transInfo.transactionId}`;
+                                        paymentReturnUrl = `${transactionPayload.meta.paymentHtmlUrl}?${transInfo.transactionId}`;
                                     }
 
                                     if (!isNull(paymentReturnUrl)) {
