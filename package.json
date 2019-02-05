@@ -20,13 +20,14 @@
     "loopback-boot": "^2.6.5",
     "loopback-component-explorer": "^6.2.0",
     "loopback-connector-mongodb": "^1.18.1",
-    "payment-module-prodio": "^1.0.18",
+    "open-edge-connector-prodio": "file:../open-edge-connector/open-edge-connector-prodio-0.0.2.tgz",
+    "payment-module-prodio": "^1.0.15",
     "payu-connector-prodio": "0.0.2",
     "serve-favicon": "^2.0.1",
     "service-adapter-prodio": "0.0.15",
     "soap": "^0.25.0",
     "strong-error-handler": "^3.0.0",
-    "tsys-connector-prodio": "0.0.6"
+    "tsys-connector-prodio": "0.0.3"
   },
   "devDependencies": {
     "eslint": "^3.17.1",
