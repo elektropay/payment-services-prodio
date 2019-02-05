@@ -32,7 +32,7 @@
         "XwebID":"800000022536",
         "TerminalID":"80031237",
         "AuthKey":"SJFETdXdZYvQdYAzgsbSnCQloN1xNCKY",
-        "connector": "open-edge-connector-prodio",
+        "connector": "openedge-connector-prodio",
         "is_active": true
     }
 
