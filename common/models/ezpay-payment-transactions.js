@@ -401,9 +401,9 @@ module.exports = function (Ezpaypaymenttransactions) {
                                         }));
                                     })
                                 } else {
-                                    console.log("paymenturl_successs", transactionPayload.meta.success_url);
-                                    let successUrl = transactionPayload.meta.success_url ? transactionPayload.meta.success_url : '';
-                                    let failureUrl = transactionPayload.meta.success_url ? transactionPayload.meta.success_url : '';
+                                    console.log("paymenturl_successs", transactionPayload.meta.successUrl);
+                                    let successUrl = transactionPayload.meta.successUrl ? transactionPayload.meta.successUrl : '';
+                                    let failureUrl = transactionPayload.meta.failureUrl ? transactionPayload.meta.failureUrl : '';
                                     let paymentReturnUrl = '';
                                     if (successUrl) {
                                         console.log("entererdddd", successUrl);
