@@ -415,6 +415,7 @@ module.exports = function (Ezpaypaymenttransactions) {
                                     }
 
                                     if (!isNull(paymentReturnUrl)) {
+                                        transInfo.postback_url = "https://1kfkd7w1qi.execute-api.us-west-2.amazonaws.com/dev/users/dummy";
                                         transInfo.return_url = paymentReturnUrl;
                                     }
 
@@ -973,6 +974,7 @@ module.exports = function (Ezpaypaymenttransactions) {
 
     Ezpaypaymenttransactions.receivePayUWebhooks = (data, redirectUrl, merchantId, res, next) => {
         console.log("datttttttttttttttt", data);
+        console.log("")
 
         Ezpaypaymenttransactions.app.models.ezpayPayees.findOne({
             "where": {
