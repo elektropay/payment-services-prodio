@@ -323,8 +323,9 @@ module.exports = function (Ezpaypaymenttransactions) {
     Ezpaypaymenttransactions.processPayment = (transactionId, payerId, cardId, cardInfo, cb) => {
         let transactionPayload = cardInfo;
         // console.log("transactionPayload",cardInfo.meta);
+        console.log("cardInfo",cardInfo);
         if (!isNull(cardInfo["meta"])) {
-            cardInfo = cardInfo["meta"]["cardInfo"];
+            cardInfo = cardInfo.meta.cardInfo ? cardInfo.meta.cardInfo :''
         }
 
         Ezpaypaymenttransactions.app.models.ezpayPayees.findById(payerId).then(payeeInfo => {
@@ -373,7 +374,8 @@ module.exports = function (Ezpaypaymenttransactions) {
 
                             } else {
                                 //check if user wants to save card or not
-                                if (cardInfo["saveCard"]) {
+                                console.log("cardInfo",cardInfo);
+                                if (cardInfo.saveCard) {
                                     //first save card and then take payment from card id
                                     let _payload = {
                                         "cardInfo": cardInfo,
@@ -407,11 +409,13 @@ module.exports = function (Ezpaypaymenttransactions) {
                                     let paymentReturnUrl = '';
                                     if (successUrl) {
                                         console.log("entererdddd", successUrl);
-                                        paymentReturnUrl = `${transactionPayload.meta.paymentHtmlUrl}?${transInfo.transactionId}&${successUrl}&${failureUrl}`;
+                                        paymentReturnUrl = `${transactionPayload.meta.returnUrl}?${transInfo.transactionId}&${successUrl}&${failureUrl}`;
                                     }
                                     else {
-                                        console.log("failedurl", failureUrl);
-                                        paymentReturnUrl = `${transactionPayload.meta.paymentHtmlUrl}?${transInfo.transactionId}`;
+
+                                        cb(new HttpErrors.InternalServerError('Please provide success url', {
+                                            expose: false
+                                        }));
                                     }
 
                                     if (!isNull(paymentReturnUrl)) {
