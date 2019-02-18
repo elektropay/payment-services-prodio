@@ -645,7 +645,7 @@ module.exports = function (Ezpaypaymenttransactions) {
                 http: {
                     source: 'query'
                 }
-            },],
+            }, ],
             returns: {
                 type: 'object',
                 root: true
@@ -655,26 +655,70 @@ module.exports = function (Ezpaypaymenttransactions) {
 
     Ezpaypaymenttransactions.getNonPayersListing = (merchantId, cb) => {
 
-        Ezpaypaymenttransactions.find({
-            "where": {
-                "merchantId": merchantId,
-                "transactionStatus": "PENDING"
+        let allPayerArr = []; let allPayerIds = [];
+        var rewardCollection = Ezpaypaymenttransactions.getDataSource().connector.collection(Ezpaypaymenttransactions.modelName);
+        var cursorTest = rewardCollection.aggregate([
+            {
+                $match: {
+                    $and: [
+                        {merchantId:merchantId},
+                        {"transactionStatus": "PENDING"}
+                    ]
+                }
             },
-            "include": [{
-                relation: 'Payer'
-            }],
-            "order": "createdAt desc"
-        }).then(transactions => {
-            if (isValidObject(transactions)) {
-                cb(null, transactions);
-            } else {
-                cb(null, transactions);
+            {
+                "$group": {
+                    "_id": {
+                        id: "$payerId"
+                    },
+                    "grand_total": {
+                        "$sum": "$totalAmount"
+                    },
+
+                }
+            },
+            {
+                "$project":{
+                    "_id":1,
+                    "grand_total":1,
+                    "Payer":1
+                }
             }
-        }).catch(error => {
-            cb(new HttpErrors.InternalServerError('Server Error', {
-                expose: false
-            }));
-        })
+        
+        ], function (err, res) {
+            console.log(res);
+            if(res.length){
+                
+                async.each(res,function(item,callbk){
+                    allPayerArr[item["_id"]["id"]] = item["grand_total"];
+                    //allPayerArr.push({"payeeId":item["_id"]["id"],"grand_total":item["grand_total"]});
+                    allPayerIds.push(item["_id"]["id"]);
+                    callbk();
+                },function(){
+                    //console.log(allPayerArr); console.log(allPayerIds);
+                    Ezpaypaymenttransactions.app.models.ezpayPayees.find({"where":{"payeeId":{"inq": allPayerIds }}}).then(allPayers=>{
+                        //let resultArr = [allPayers, allPayerArr].reduce((a, b) => a.map((c, i) => Object.assign({}, c, b[i])));
+                        //let resultArr = mergeRecursive(allPayers,allPayerArr);
+                        let tmpArr = []; let tmpObj = {};
+                        allPayers = JSON.parse(JSON.stringify(allPayers));
+                        async.each(allPayers,function(itemP,cllbk){
+                            tmpObj = {};
+                            tmpObj = itemP;
+                            tmpObj["totalAmount"] = allPayerArr[itemP["payeeId"]];
+                            tmpArr.push(tmpObj);
+                            cllbk();
+                        },function(){
+                            
+                            cb(null, tmpArr);
+                        });                        
+                    }).catch(err=>{
+                        console.log(err)
+                    });
+                });
+            }else{
+                cb(null, res);
+            }
+        });
     }
 
 
