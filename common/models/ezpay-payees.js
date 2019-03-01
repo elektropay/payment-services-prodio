@@ -692,7 +692,7 @@ module.exports = function(Ezpaypayees) {
             },
             description: ["Add Payee"],
             accepts: [{
-                    arg: 'payeeId',
+                    arg: 'payerId',
                     type: 'string',
                     required: true,
                     http: {
@@ -715,8 +715,8 @@ module.exports = function(Ezpaypayees) {
         }
     );
 
-    Ezpaypayees.removeCard = (payeeId, cardId, cb) => {
-        Ezpaypayees.findById(payeeId).then(payeeInfo => {
+    Ezpaypayees.removeCard = (payerId, cardId, cb) => {
+        Ezpaypayees.findById(payerId).then(payeeInfo => {
             if (isValidObject(payeeInfo)) {
                 Ezpaypayees.app.models.savedCardsMetaData.findById(cardId).then(cardInfo => {
                     if (isValidObject(cardInfo)) {
@@ -795,18 +795,11 @@ module.exports = function(Ezpaypayees) {
                 relation: 'Payee'
             }],
             where: {
-                "payeeId": payerId,
+                "payerId": payerId,
                 "isActive": true
             },
         }).then(userCards => {
-            //print(payees);
-            if (isValidObject(userCards)) {
-                return cb(null, userCards);
-            } else {
-                return cb(new HttpErrors.InternalServerError('Invalid payer id', {
-                    expose: false
-                }));
-            }
+            cb(null, userCards);
         }).catch(error => {
             return cb(new HttpErrors.InternalServerError('Db connection failed', {
                 expose: false
