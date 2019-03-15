@@ -18,24 +18,28 @@
     "merchantId": {
       "type": "string"
     },
-    "totalAmount":{
-      "type":"number"
+    "totalAmount": {
+      "type": "number"
     },
-    "metaData":{
-      "type":"object"
+    "paymentFrequency":{
+      "type": "string",
+      "default":"ONETIME"
+    },
+    "metaData": {
+      "type": "object"
     },
     "transactionStatus": {
       "type": "string"
     },
-    "isActive":{
-      "type":"boolean",
-      "default":true
+    "isActive": {
+      "type": "boolean",
+      "default": true
     },
     "createdAt": {
       "type": "date"
     },
-    "paymentDate":{
-      "type":"date"
+    "paymentDate": {
+      "type": "date"
     }
   },
   "validations": [],
@@ -49,6 +53,11 @@
       "type": "belongsTo",
       "model": "ezpayMerchants",
       "foreignKey": "merchantId"
+    },
+    "Installments": {
+      "type": "hasMany",
+      "model": "PaymentInstallments",
+      "foreignKey": "refTransactionId"
     }
   },
   "acls": [],

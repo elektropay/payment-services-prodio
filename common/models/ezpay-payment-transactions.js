@@ -102,18 +102,133 @@ module.exports = function (Ezpaypaymenttransactions) {
 
 
         savePayment["metaData"] = paymentDetails;
-        console.log("savePayment", savePayment);
+
+        //console.log("savePayment", savePayment);
         Ezpaypaymenttransactions.create(savePayment).then(transactionInfo => {
-            console.log("transactionInfo", transactionInfo);
-            cb(null, {
-                "success": true,
-                "transactionId": transactionInfo["transactionId"]
-            });
+            //console.log("transactionInfo", transactionInfo);
+            if(isNull(paymentInfo["paymentFrequency"])){
+                switch(paymentInfo["paymentFrequency"]){
+                    case "ONETIME":
+                    break;
+                    case "INSTALLMENTS":
+                        funCreateInstallments(transactionInfo["transactionId"],paymentInfo["installmentItems"],savePayment["totalAmount"]);
+                    break;
+                    case "RECURRING":
+                        funCreateRecurringPlan(transactionInfo["transactionId"],paymentInfo["recurringItems"],savePayment["totalAmount"]);
+                    break;
+                }
+            }
+            cb(null, { "success": true,"transactionId": transactionInfo["transactionId"]});
         }).catch(error => {
             console.log("error", error);
             cb(new HttpErrors.InternalServerError('Error while creating new payment transaction.', {
                 expose: false
             }));
+        });
+    }
+
+    function funCreateInstallments(refTransactionId,installmentItems,totalAmount){
+        let saveJson = {};
+        async.each(installmentItems["installments"],function(item,clb){
+            saveJson = {
+                "refTransactionId":refTransactionId,
+                "installmentLabel": item["label"],
+                "amount":item["amount"],
+                "dueDate":item["dueDate"],
+                "paymentType":"INSTALLMENT",
+                "paymentStatus":"PENDING",
+                "metaData":{},
+                "createdAt": new Date()
+            };
+
+            Ezpaypaymenttransactions.app.models.PaymentInstallments.create(saveJson).then(transInfo=>{
+                //TODO : Use agenda and set event
+            }).catch(err=>{
+
+            });
+
+        },function(){
+
+        });
+    }
+
+    function funGetNextPaymentDate(startDate,intervalType,intervalNumber){
+        switch(String(intervalType).toUpperCase()){
+            case "MONTHLY":
+                startDate.setDate(startDate.getDate());
+                startDate.setMonth(startDate.getMonth() + intervalNumber);
+                //startDate.setDate(startDate.getDate());
+            break;
+            case "DAILY":
+                startDate.setDate(startDate.getDate() + 1);
+            break;
+            case "QUATERLY":
+                startDate.setDate(startDate.getDate());
+                startDate.setMonth(startDate.getMonth() + (3 * intervalNumber) );
+            break;
+            case "HALFYEARLY":
+                startDate.setDate(startDate.getDate());
+                startDate.setMonth(startDate.getMonth() + (6 * intervalNumber) );
+            break;
+            case "YEARLY":
+                startDate.setFullYear(startDate.getFullYear() + 1);
+            break;
+        }
+
+        startDate = new Date(startDate);
+
+        return getPaddedComp(startDate.getMonth())+"/"+getPaddedComp(startDate.getDate())+"/"+startDate.getFullYear();
+    }
+
+    function getPaddedComp(comp) {
+        return (((parseInt(comp) < 10) && comp.length != 2) ? ('0' + comp) : comp);
+    }
+
+    function funCreateRecurringPlan(refTransactionId,recurringItems,totalAmount){
+        let saveJson = {};
+        let downPayment = recurringItems["downPayment"];
+        let recurringInterval =  recurringItems["recurringInterval"];
+        let recurringAmount = recurringItems["recurringAmount"];
+
+        let amountPending = parseFloat(totalAmount) - parseFloat(downPayment);
+        let recurringStartDate = new Date();
+        //Calculate total EMI duration
+        //let totalMonths = parseFloat(amountPending) / parseFloat(recurringItems["recurringAmount"]);
+        //let _count = totalMonths;
+        let recurringArr = []; let _amt = amountPending;
+        let recurrPay = 0;
+        for(i=0;i<parseInt(recurringItems["recurringIntervalCount"]);i++){
+            _amt = parseFloat(_amt) - parseFloat(recurringAmount);
+            if(parseFloat(_amt) > parseFloat(recurringAmount) ){
+                recurringArr.push({"recurringAmount":parseFloat(recurringAmount),"dueDate": funGetNextPaymentDate(recurringStartDate,recurringInterval, (i+1) ) });
+            }else{
+                if( parseFloat(_amt) > 0 ){
+                    recurringArr.push({"recurringAmount":parseFloat(_amt),"dueDate": funGetNextPaymentDate(recurringStartDate,recurringInterval, (i+1) ) });
+                }
+            }   
+        }
+
+
+        async.each(recurringArr,function(item,clb){
+            saveJson = {
+                "refTransactionId":refTransactionId,
+                "installmentLabel": "",
+                "amount": item["recurringAmount"],
+                "dueDate":item["dueDate"],
+                "paymentType":"RECURRING",
+                "paymentStatus":"PENDING",
+                "metaData":{},
+                "createdAt": new Date()
+            };
+
+            Ezpaypaymenttransactions.app.models.PaymentInstallments.create(saveJson).then(transInfo=>{
+                //TODO : Use agenda and set event
+            }).catch(err=>{
+
+            });
+
+        },function(){
+
         });
     }
 
@@ -131,6 +246,10 @@ module.exports = function (Ezpaypaymenttransactions) {
 
     async function funGetOrderDetails(payload) {
         return await paymentAdapter.getOrderDetails(payload);
+    }
+
+    async function funPayWithSavedCard(payload) {
+        return await paymentAdapter.payDirectlyWithSavedCard(payload);
     }
 
     Ezpaypaymenttransactions.remoteMethod(
@@ -1201,11 +1320,8 @@ module.exports = function (Ezpaypaymenttransactions) {
         });
     }
 
-
-
-
     async function funMakeRefundInGateway(payload) {
-        console.log("paymentAdapy", paymentAdapter);
+        //console.log("paymentAdapy", paymentAdapter);
         return await paymentAdapter.makeRefund(payload);
     }
 
@@ -1233,32 +1349,40 @@ module.exports = function (Ezpaypaymenttransactions) {
 
     Ezpaypaymenttransactions.makeRefund = (data, cb) => {
         let _payload = data;
-        if (!isNull(payloadJson["meta"])) {
-            _payload = payloadJson["meta"];
+        if (!isNull(data["meta"])) {
+            _payload = data["meta"];
         }
-        console.log("refund payload", _payload);
+        //console.log("refund payload", _payload);
         funMakeRefundInGateway({
             "paymentInfo": _payload
         }).then(sdkResponse => {
-            let savePayment = {
-                "merchantId": _payload["merchantId"],
-                "payerId": _payload["payerId"],
-                "totalAmount": parseFloat(_payload["amount"]),
-                "isRecurring": false,
-                "payableDate": new Date(),
-                "transactionStatus": "REFUND",
-                "metaData": _payload,
-                "isActive": true,
-                "createdAt": new Date()
-            };
 
-            Ezpaypaymenttransactions.create(savePayment).then(res => {
-                cb(null, res);
-            }).catch(error => {
-                cb(new HttpErrors.InternalServerError('Server Error', {
-                    expose: false
-                }));
-            });
+            if(sdkResponse.response_code == 1){
+
+                let savePayment = {
+                    "merchantId": _payload["merchantId"],
+                    "payerId": _payload["payerId"],
+                    "totalAmount": parseFloat(_payload["amount"]),
+                    "isRecurring": false,
+                    "payableDate": new Date(),
+                    "transactionStatus": "REFUND",
+                    "metaData": _payload,
+                    "isActive": true,
+                    "createdAt": new Date()
+                };
+
+                Ezpaypaymenttransactions.create(savePayment).then(res => {
+                    cb(null, res);
+                }).catch(error => {
+                    cb(new HttpErrors.InternalServerError('Server Error', {
+                        expose: false
+                    }));
+                });
+            }else{
+                cb(new HttpErrors.InternalServerError(sdkResponse.response_code_text, {
+                        expose: false
+                    }));
+            }
         }).catch(error => {
             console.error(error);
             let _msg = isNull(error["message"]) ? 'Internal Server Error' : error["message"];
@@ -1339,9 +1463,56 @@ module.exports = function (Ezpaypaymenttransactions) {
                 })
             }
         });
-
-
     }
+
+    
+
+    Ezpaypaymenttransactions.remoteMethod(
+        'paymentWithSavedCard', {
+            http: {
+                verb: 'post'
+            },
+            description: ["This request will provide transaction details"],
+            accepts: [
+                { arg: 'paymentInfo', type: 'object', 'http': { 'source': 'body' }, 'required': false },
+            ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaypaymenttransactions.paymentWithSavedCard = (paymentInfo, cb) => {
+        Ezpaypaymenttransactions.app.models.savedCardsMetaData.findById(paymentInfo["cardId"]).then(cardInfo=>{
+            if(isValidObject(cardInfo)){
+                funPayWithSavedCard({"cardInfo":cardInfo,"paymentInfo":paymentInfo}).then(sdkResponse=>{
+                    if(parseInt(sdkResponse.response_code) == 1){
+                        cb(null,sdkResponse);
+                    }else{
+                       cb(new HttpErrors.InternalServerError(sdkResponse.response_code_text, {
+                            expose: false
+                        })); 
+                    }
+                }).catch(error=>{
+                    let _msg = isNull(error["message"]) ? 'Internal Server Error' : error["message"];
+                    cb(new HttpErrors.InternalServerError(_msg, {
+                        expose: false
+                    }));
+                })
+            }else{
+               cb(new HttpErrors.InternalServerError("Invalid card Id.", {
+                    expose: false
+                })); 
+            }
+        }).catch(error=>{
+            let _msg = isNull(error["message"]) ? 'Internal Server Error' : error["message"];
+            cb(new HttpErrors.InternalServerError(_msg, {
+                expose: false
+            }));
+        });
+    }
+
 
     Ezpaypaymenttransactions.remoteMethod(
         'getOrderDetails', {
@@ -1456,16 +1627,14 @@ module.exports = function (Ezpaypaymenttransactions) {
     Ezpaypaymenttransactions.dummyPayment = (data, cb) => {
 
         let json = {
-            "merchantId": "22e47c6d-3d2a-4688-ad95-b75f1c1c4ed1",
-            "payerId": "f5ea0294-fc43-4692-a013-09b8cd2874e6",
-            "hostBaseURL":"http://dev.getezpay.com:3010/", //base url of the host where service apis are running
-            "successUrl": "http://dev.getezpay.com/?success=true",   //redirection url should be an http or https url 
-            "failureUrl": "http://dev.getezpay.com/?success=false",   //should be an http or https url 
-            "returnUrl":"http://dev.getezpay.com"  //should be an http or https url 
-        };
+                "transactionId":"f4cfd5c2-b55b-4d82-96fd-58f9911ac6d9", /*(optional,You can get this transactionId from payment request transaction)*/  
+                "buyerId":"",
+                "amount":"10.00",
+                "transaction_type":"CREDIT_CARD"
+            };
 
         const processPayload = {
-            'action': "VERIFY_CARD",
+            'action': "MAKE_REFUND",
             'meta': json
         };
         paymentObj.execute(processPayload, response => {

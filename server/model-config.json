@@ -50,5 +50,9 @@
   "merchantPayeesRelation": {
     "dataSource": "db",
     "public": true
+  },
+  "PaymentInstallments": {
+    "dataSource": "db",
+    "public": true
   }
 }
