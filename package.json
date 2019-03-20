@@ -11,6 +11,7 @@
     "posttest": "npm run lint"
   },
   "dependencies": {
+    "agenda": "^2.0.2",
     "compression": "^1.0.3",
     "convert-excel-to-json": "^1.5.2",
     "cors": "^2.5.2",

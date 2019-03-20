@@ -22,7 +22,7 @@
       "type": "number"
     },
     "dueDate": {
-      "type": "string"
+      "type": "date"
     },
     "paymentType": {
       "type": "string"
@@ -39,7 +39,7 @@
   },
   "validations": [],
   "relations": {
-    "Merchant": {
+    "PaymentTransaction": {
       "type": "belongsTo",
       "model": "ezpayPaymentTransactions",
       "foreignKey": "refTransactionId"

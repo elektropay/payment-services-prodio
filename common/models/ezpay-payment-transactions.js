@@ -18,7 +18,38 @@ const {
     paymentAdapter
 } = require('../../server/moduleImporter');
 
+const {PAYMENT_TERMS} = require('../../server/constant');
+
+// const {
+//     agendaObj,agendaDB,listenEvents,setEevents
+// } = require('../../server/agenda/producer');
+
+// listenEvents();
+// setEevents({"data":"sadasd","Asdas":"asdasdd"});
+
+// const Scheduler = require('../../server/agenda/producer');
+/*
+const {Scheduler} = require('../../server/agenda/producer copy');
+console.log(Scheduler);
+
+Scheduler.init().then(
+    () => Scheduler.createJob('myJob1', { triggerAt: Date.now() })
+).catch(
+    error => {
+        throw error
+    }
+);
+*/
+
+const schedular = require('../../server/agenda/schedular');
+//schedular.setEvent(dataObj);
+schedular.initAgenda();
+//schedular.syncAllJobs();
+
+
+
 const CircularJSON = require('circular-json');
+
 const paymentClass = require('payment-module-prodio');
 const paymentObj = new paymentClass('http://localhost:3010/api/');
 const isNull = function (val) {
@@ -54,7 +85,14 @@ module.exports = function (Ezpaypaymenttransactions) {
                 http: {
                     source: 'body'
                 }
-            }
+            },
+            {
+                    arg: 'req',
+                    type: 'object',
+                    http: ctx => {
+                        return ctx.res;
+                    }
+                }
             ],
             returns: {
                 type: 'object',
@@ -63,7 +101,7 @@ module.exports = function (Ezpaypaymenttransactions) {
         }
     );
 
-    Ezpaypaymenttransactions.requestPayment = (merchantId, paymentInfo, cb) => {
+    Ezpaypaymenttransactions.requestPayment = (merchantId, paymentInfo,req, cb) => {
         if (!isNull(paymentInfo["meta"])) {
             paymentInfo = paymentInfo["meta"];
         }
@@ -84,10 +122,14 @@ module.exports = function (Ezpaypaymenttransactions) {
             "title": paymentInfo.title ? paymentInfo.title : '',
             "invoiceNumber": paymentInfo.invoiceNumber ? paymentInfo.invoiceNumber : '',
             "invoiceDate": paymentInfo.invoiceDate ? paymentInfo.invoiceDate : '',
-            "totalAmount": parseFloat(totalAmount) ? parseFloat(totalAmount) : '',
+            "totalAmountPaid":0.00,
+            "totalAmountPending": parseFloat(totalAmount) ? parseFloat(totalAmount) : '0.00',
+            "totalAmount": parseFloat(totalAmount) ? parseFloat(totalAmount) : '0.00',
             "isRecurring": paymentInfo.isRecurring ? paymentInfo.isRecurring : '',
+            "paymentFrequency": paymentInfo.paymentFrequency ? paymentInfo.paymentFrequency : PAYMENT_TERMS['ONETIME'],
+            "downPayment": paymentInfo.downPayment ? paymentInfo.downPayment : '0.00',
             "payableDate": paymentInfo.payableDate ? paymentInfo.payableDate : '',
-            "transactionStatus": "PENDING",
+            "transactionStatus": PAYMENT_TERMS["PENDING"],
             "isActive": true,
             "createdAt": new Date()
         };
@@ -103,22 +145,27 @@ module.exports = function (Ezpaypaymenttransactions) {
 
         savePayment["metaData"] = paymentDetails;
 
-        //console.log("savePayment", savePayment);
         Ezpaypaymenttransactions.create(savePayment).then(transactionInfo => {
             //console.log("transactionInfo", transactionInfo);
-            if(isNull(paymentInfo["paymentFrequency"])){
-                switch(paymentInfo["paymentFrequency"]){
-                    case "ONETIME":
+            if(!isNull(savePayment["paymentFrequency"])){
+                //console.log(savePayment["paymentFrequency"]);
+                switch(savePayment["paymentFrequency"]){
+                    case PAYMENT_TERMS["ONETIME"]:
+                        //cb(null, { "success": true,"transactionId": transactionInfo["transactionId"]});
                     break;
-                    case "INSTALLMENTS":
-                        funCreateInstallments(transactionInfo["transactionId"],paymentInfo["installmentItems"],savePayment["totalAmount"]);
+                    case PAYMENT_TERMS["INSTALLMENTS"]:
+                        funCreateInstallments(transactionInfo["transactionId"],paymentInfo["installmentItems"],savePayment["totalAmount"],paymentInfo["hostBaseURL"],req);
                     break;
-                    case "RECURRING":
-                        funCreateRecurringPlan(transactionInfo["transactionId"],paymentInfo["recurringItems"],savePayment["totalAmount"]);
+                    case PAYMENT_TERMS["RECURRING"]:
+                        funCreateRecurringPlan(transactionInfo["transactionId"],paymentInfo["recurringItems"],savePayment["totalAmount"],paymentInfo["hostBaseURL"],req);
                     break;
                 }
+            }else{
+                //cb(null, { "success": true,"transactionId": transactionInfo["transactionId"]});
             }
+
             cb(null, { "success": true,"transactionId": transactionInfo["transactionId"]});
+            
         }).catch(error => {
             console.log("error", error);
             cb(new HttpErrors.InternalServerError('Error while creating new payment transaction.', {
@@ -127,30 +174,198 @@ module.exports = function (Ezpaypaymenttransactions) {
         });
     }
 
-    function funCreateInstallments(refTransactionId,installmentItems,totalAmount){
-        let saveJson = {};
+    function funCreateInstallments(refTransactionId,installmentItems,totalAmount,hostBaseURL,req){
+        let saveJson = {}; let schedulingDone= false;
+        //console.log(Date.now());
+        installmentItems = JSON.parse(JSON.stringify(installmentItems));
+
         async.each(installmentItems["installments"],function(item,clb){
             saveJson = {
                 "refTransactionId":refTransactionId,
                 "installmentLabel": item["label"],
                 "amount":item["amount"],
-                "dueDate":item["dueDate"],
-                "paymentType":"INSTALLMENT",
-                "paymentStatus":"PENDING",
-                "metaData":{},
+                "dueDate":new Date(item["dueDate"]+" 18:54"),
+                "paymentType":PAYMENT_TERMS["INSTALLMENT"],
+                "paymentStatus":PAYMENT_TERMS["PENDING"],
+                "metaData":item["metaData"],
                 "createdAt": new Date()
             };
 
             Ezpaypaymenttransactions.app.models.PaymentInstallments.create(saveJson).then(transInfo=>{
                 //TODO : Use agenda and set event
+                //http://thecodebarbarian.com/node.js-task-scheduling-with-agenda-and-mongodb.html
+                clb();
             }).catch(err=>{
-
+                console.log(err);
+                clb();
             });
 
         },function(){
+            funScheduleNextTransaction(refTransactionId,hostBaseURL,req);
+           // cb(null, { "success": true,"transactionId": transactionInfo["transactionId"]});
+        });
+    }
+
+    function funScheduleNextTransaction(refTransactionId,hostBaseURL,req){
+
+        let url = funGetBaseUrl(hostBaseURL,req);
+        let _surl = url + "/api/ezpayPaymentTransactions/autoDeductPayment";
+        _surl = funNormalizeStr(_surl);
+
+        Ezpaypaymenttransactions.app.models.PaymentInstallments.findOne({"where":{"paymentStatus":"PENDING"},"order":"dueDate ASC"}).then(nextTransInfo=>{
+            if(isValidObject(nextTransInfo)){
+                let evenObj = {"jobId":nextTransInfo["installmentId"],"apiUrl":_surl,"triggerAt": new Date(nextTransInfo["dueDate"]),"refTransactionId":nextTransInfo["refTransactionId"]} 
+                schedular.setEvent(evenObj);
+            }else{
+                console.log("All scheduled..")
+            }
+            
+        }).catch(err=>{
 
         });
     }
+
+    function funCreateRecurringPlan(refTransactionId,recurringItems,totalAmount,hostBaseURL,req){
+        let saveJson = {};
+        async.each(recurringItems["installments"],function(item,clb){
+            saveJson = {
+                "refTransactionId":refTransactionId,
+                "installmentLabel": item["label"],
+                "amount":item["amount"],
+                "dueDate":new Date(item["dueDate"]+" 03:00"),
+                "paymentType":PAYMENT_TERMS["RECURRING"],
+                "paymentStatus":PAYMENT_TERMS["PENDING"],
+                "metaData":item["metaData"],
+                "createdAt": new Date()
+            };
+
+            Ezpaypaymenttransactions.app.models.PaymentInstallments.create(saveJson).then(transInfo=>{
+                //TODO : Use agenda and set event
+                clb();
+            }).catch(err=>{
+                clb();
+            });
+
+        },function(){
+            funScheduleNextTransaction(refTransactionId,hostBaseURL,req);
+        });
+    }
+
+
+    Ezpaypaymenttransactions.remoteMethod(
+        'autoDeductPayment', {
+            http: {
+                verb: 'get'
+            },
+            description: ["This request will initiate a payment request transaction"],
+            accepts: [
+            {
+                arg: 'installmentId',
+                type: 'string',
+                required: true,
+                http: {
+                    source: 'query'
+                }
+            }
+            ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaypaymenttransactions.autoDeductPayment = (installmentId, cb) => {
+        //console.log(installmentId)
+        //1. do payment
+        //2. update total paid amount
+        //3. schedule next transaction
+        Ezpaypaymenttransactions.app.models.PaymentInstallments.findOne({"where":{"installmentId": installmentId },"include":[{relation:'PaymentTransaction'}]}).then(installInfo=>{
+            if(isValidObject(installInfo)){
+                installInfo = JSON.parse(JSON.stringify(installInfo));
+                //console.log(installInfo);
+                let payerId = installInfo["PaymentTransaction"]["payerId"];
+                Ezpaypaymenttransactions.app.models.savedCardsMetaData.findOne({"where":{"payerId": payerId}}).then(savedCardInfo=>{
+                    if(isValidObject(savedCardInfo)){
+                        savedCardInfo["amount"] = installInfo["amount"];
+                        Ezpaypaymenttransactions.paymentWithSavedCard(savedCardInfo).then(successRes=>{
+                            //now redirect
+                            installInfo.updateAttributes({"paymentStatus": PAYMENT_TERMS["PAID"],"paymentDate": new Date() }).then(updateInstll=>{
+                                Ezpaypaymenttransactions.findById(installInfo["refTransactionId"]).then(transInfo=>{
+                                    if(isValidObject(transInfo)){
+                                        let savePayment = {
+                                            "totalAmountPaid": ( parseFloat(transInfo["downPayment"]) + parseFloat(installInfo["amount"]) )
+                                        };
+
+                                        savePayment["totalAmountPending"] = (parseFloat(transactionInfo["totalAmount"]) - parseFloat(savePayment["totalAmountPaid"]));
+                                        transactionInfo.updateAttributes(savePayment).then(updatedTransaction => {
+
+                                        }).catch(error => {
+                                            
+                                        });
+                                    }else{
+
+                                    }
+                                })
+                            }).catch(err=>{
+                                
+                            })
+                            
+                        }).catch(err=>{
+                            //installment failed
+                            installInfo.updateAttributes({"paymentStatus": PAYMENT_TERMS["FAILED"],"metaData":{"errorMessage": JSON.stringify(err)} }).then(updateInstll=>{
+                            });
+                        })
+                    }
+                }).catch(err=>{
+
+                })
+                /*
+                    { installmentId: 'f904ecb4-2756-42f0-a314-81b0b31d8f1a',
+  refTransactionId: '1e9f5699-a7b8-46d9-a39f-acc600a7c457',
+  installmentLabel: '1st payment',
+  amount: 100,
+  dueDate: '03/19/2019',
+  paymentType: 'INSTALLMENT',
+  paymentStatus: 'PENDING',
+  metaData: {},
+  createdAt: '2019-03-19T11:40:51.966Z',
+  PaymentTransaction:
+   { transactionId: '1e9f5699-a7b8-46d9-a39f-acc600a7c457',
+     payerId: 'cc15dc54-98e2-45d0-b5ab-113aebf7a1e9',
+     merchantId: 'bb15dc52-86e2-45c0-b5ab-889aebf7a1d6',
+     totalAmount: 600,
+     totalAmountPaid: 0,
+     totalAmountPending: 600,
+     paymentFrequency: 'INSTALLMENTS',
+     metaData:
+      { merchantId: 'bb15dc52-86e2-45c0-b5ab-889aebf7a1d6',
+        payerName: 'Test User',
+        currency: 'USD',
+        totalAmount: '600',
+        dueDate: '03/20/2019',
+        paymentFrequency: 'INSTALLMENTS',
+        installmentItems: [Object],
+        displayItems: [Array],
+        total: [Object],
+        data: [Object] },
+     transactionStatus: 'PENDING',
+     isActive: true,
+     createdAt: '2019-03-19T11:40:51.945Z',
+     title: 'This is payment',
+     invoiceNumber: '123211',
+     invoiceDate: 'MM/DD/YYYY',
+     isRecurring: '',
+     payableDate: '' } }
+                */
+            }else{
+                console.log("Invalid ID");
+            }
+        }).catch(err=>{
+
+        });
+    }
+
 
     function funGetNextPaymentDate(startDate,intervalType,intervalNumber){
         switch(String(intervalType).toUpperCase()){
@@ -184,7 +399,7 @@ module.exports = function (Ezpaypaymenttransactions) {
         return (((parseInt(comp) < 10) && comp.length != 2) ? ('0' + comp) : comp);
     }
 
-    function funCreateRecurringPlan(refTransactionId,recurringItems,totalAmount){
+    function funCreateRecurringPlanAuto(refTransactionId,recurringItems,totalAmount){
         let saveJson = {};
         let downPayment = recurringItems["downPayment"];
         let recurringInterval =  recurringItems["recurringInterval"];
@@ -215,16 +430,17 @@ module.exports = function (Ezpaypaymenttransactions) {
                 "installmentLabel": "",
                 "amount": item["recurringAmount"],
                 "dueDate":item["dueDate"],
-                "paymentType":"RECURRING",
-                "paymentStatus":"PENDING",
+                "paymentType":PAYMENT_TERMS["RECURRING"],
+                "paymentStatus":PAYMENT_TERMS["PENDING"],
                 "metaData":{},
                 "createdAt": new Date()
             };
 
             Ezpaypaymenttransactions.app.models.PaymentInstallments.create(saveJson).then(transInfo=>{
                 //TODO : Use agenda and set event
+                clb();
             }).catch(err=>{
-
+                clb();
             });
 
         },function(){
@@ -317,7 +533,7 @@ module.exports = function (Ezpaypaymenttransactions) {
         //console.log(" \n \n paymentInfo==>"+JSON.stringify(paymentInfo));
         Ezpaypaymenttransactions.findById(transactionId).then(transInfo => {
             if (isValidObject(transInfo)) {
-                if (transInfo["transactionStatus"] == "PAID") {
+                if (transInfo["transactionStatus"] == PAYMENT_TERMS["PAID"]) {
                     cb(new HttpErrors.InternalServerError('You have Already Paid for the transaction!', {
                         expose: false
                     }));
@@ -329,7 +545,9 @@ module.exports = function (Ezpaypaymenttransactions) {
                         console.log(sdkResponse);
 
                         transInfo.updateAttributes({
-                            "transactionStatus": "PAID",
+                            "transactionStatus": PAYMENT_TERMS["PAID"],
+                            "totalAmountPending":0.00,
+                            "totalAmountPaid": transInfo["totalAmount"],
                             "paymentDate": new Date()
                         }).then(updatedCount => {
                             cb(null, updatedCount);
@@ -480,7 +698,7 @@ module.exports = function (Ezpaypaymenttransactions) {
                     //console.log(transactionId);
                     //console.log(transInfo);
                     if (isValidObject(transInfo)) {
-                        if (transInfo["transactionStatus"] == "PAID") {
+                        if (transInfo["transactionStatus"] == PAYMENT_TERMS["PAID"]) {
                             cb(new HttpErrors.InternalServerError('You have Already Paid for the transaction!', {
                                 expose: false
                             }));
@@ -498,7 +716,9 @@ module.exports = function (Ezpaypaymenttransactions) {
                                         transInfo.updateAttributes({
                                             "gatewayTransactionId": sdkResponse["body"]["gatewayTransactionId"],
                                             "cardId": cardId,
-                                            "transactionStatus": "PAID",
+                                            "transactionStatus": PAYMENT_TERMS["PAID"],
+                                            "totalAmountPending":0.00,
+                                            "totalAmountPaid": transInfo["totalAmount"],
                                             "paymentDate": new Date()
                                         }).then(updatedCount => {
                                             cb(null, updatedCount);
@@ -533,7 +753,9 @@ module.exports = function (Ezpaypaymenttransactions) {
                                         transInfo.updateAttributes({
                                             "gatewayTransactionId": sdkResponse["body"]["gatewayTransactionId"],
                                             "cardId": cardId,
-                                            "transactionStatus": "PAID",
+                                            "transactionStatus": PAYMENT_TERMS["PAID"],
+                                            "totalAmountPending":0.00,
+                                            "totalAmountPaid": transInfo["totalAmount"],
                                             "paymentDate": new Date()
                                         }).then(updatedCount => {
                                             cb(null, updatedCount);
@@ -579,14 +801,31 @@ module.exports = function (Ezpaypaymenttransactions) {
                                         "payerInfo": payeeInfo,
                                         "paymentInfo": transInfo
                                     };
+
+                                    let _ts = "PAID";
+                                    if(!isNull(transInfo["paymentFrequency"])){
+                                        switch(transInfo["paymentFrequency"]){
+                                            case PAYMENT_TERMS["INSTALLMENTS"]:
+                                                _ts = PAYMENT_TERMS["PARTIALLY_PAID"];
+                                                _payload["paymentInfo"]["totalAmount"] = transInfo["downPayment"];
+                                            break;
+                                            case PAYMENT_TERMS["RECURRING"]:
+                                                _ts = PAYMENT_TERMS["PARTIALLY_PAID"];
+                                                _payload["paymentInfo"]["totalAmount"] = transInfo["downPayment"];
+                                            break;
+                                        }
+                                    }
+
                                     funMakePaymentInGateway(_payload).then(sdkResponse => {
 
                                         if (sdkResponse.body) {
+                                            
                                             transInfo.updateAttributes({
                                                 "gatewayTransactionId": sdkResponse.body.gatewayTransactionId ? sdkResponse.body.gatewayTransactionId : '',
                                                 "paymentUrl": sdkResponse.body.payRedirectUrl ? sdkResponse.body.payRedirectUrl : '',
-                                                "cardId": cardId,
-                                                "transactionStatus": sdkResponse.body.gatewayTransactionId ? "PAID" : "PENDING",
+                                                "transactionStatus": sdkResponse.body.payRedirectUrl ? _ts : PAYMENT_TERMS["PENDING"],
+                                                "totalAmountPending":0.00,
+                                                "totalAmountPaid": transInfo["totalAmount"],
                                                 "paymentDate": new Date()
                                             }).then(updatedCount => {
                                                 cb(null, updatedCount);
@@ -684,9 +923,14 @@ module.exports = function (Ezpaypaymenttransactions) {
             "where": {
                 "merchantId": merchantId
             },
-            "include": [{
+            "include": [
+            {
                 relation: 'Payer'
-            }, {
+            },
+            {
+                relation: 'Installments'
+            }, 
+            {
                 relation: 'Merchant',
                 scope: {
                     "fields": ["merchantId", "userId", "userInfo", "businessInfo"]
@@ -814,7 +1058,7 @@ module.exports = function (Ezpaypaymenttransactions) {
                 $match: {
                     $and: [
                         {merchantId:merchantId},
-                        {"transactionStatus": "PENDING"}
+                        {"transactionStatus": PAYMENT_TERMS["PENDING"]}
                     ]
                 }
             },
@@ -991,10 +1235,10 @@ module.exports = function (Ezpaypaymenttransactions) {
                 };
 
                 async.each(cursor, function (item, callbk) {
-                    if (item["_id"]["transactionStatus"] == "DONE" || item["_id"]["transactionStatus"] == "PAID") {
+                    if (item["_id"]["transactionStatus"] == PAYMENT_TERMS["DONE"] || item["_id"]["transactionStatus"] == PAYMENT_TERMS["PAID"]) {
                         retJson["totalCollections"] = item["grand_total"]
                     }
-                    if (item["_id"]["transactionStatus"] == "PENDING") {
+                    if (item["_id"]["transactionStatus"] == PAYMENT_TERMS["PENDING"]) {
                         retJson["amountPending"] = item["grand_total"];
                     }
                     callbk();
@@ -1065,10 +1309,10 @@ module.exports = function (Ezpaypaymenttransactions) {
                 };
 
                 async.each(cursor, function (item, callbk) {
-                    if (item["_id"]["transactionStatus"] == "DONE" || item["_id"]["transactionStatus"] == "PAID") {
+                    if (item["_id"]["transactionStatus"] == PAYMENT_TERMS["DONE"] || item["_id"]["transactionStatus"] == PAYMENT_TERMS["PAID"]) {
                         retJson["totalCollections"] = item["grand_total"]
                     }
-                    if (item["_id"]["transactionStatus"] == "PENDING") {
+                    if (item["_id"]["transactionStatus"] == PAYMENT_TERMS["PENDING"]) {
                         retJson["amountPending"] = item["grand_total"];
                     }
                     callbk();
@@ -1106,7 +1350,7 @@ module.exports = function (Ezpaypaymenttransactions) {
                 "totalAmount": parseFloat(data["amount"]),
                 "isRecurring": false,
                 "payableDate": new Date(),
-                "transactionStatus": "PAID",
+                "transactionStatus": PAYMENT_TERMS["PAID"],
                 "metaData": data,
                 "isActive": true,
                 "createdAt": new Date()
@@ -1119,7 +1363,7 @@ module.exports = function (Ezpaypaymenttransactions) {
                 "totalAmount": parseFloat(data["amount"]),
                 "isRecurring": false,
                 "payableDate": new Date(),
-                "transactionStatus": "FAILED",
+                "transactionStatus": PAYMENT_TERMS["FAILED"],
                 "metaData": data,
                 "isActive": true,
                 "createdAt": new Date()
@@ -1195,7 +1439,7 @@ module.exports = function (Ezpaypaymenttransactions) {
                     "email": isValid(data["email"]) ? String(data["email"]).toLowerCase() : "",
                     "mobileNumber": isValid(data["phone"]) ? data["phone"] : "",
                     "address": isValid(data["address1"]) ? data["address1"] : "",
-                    "paymentMethod": "CREDIT_CARD",
+                    "paymentMethod": PAYMENT_TERMS["CREDIT_CARD"],
                     "isActive": true,
                     "createdAt": new Date(),
                     "updatedAt": new Date()
@@ -1285,37 +1529,87 @@ module.exports = function (Ezpaypaymenttransactions) {
             "response_code_text": response_code_text
         }
 
-        let paymentStatus = "FAILED";
+        let paymentStatus = PAYMENT_TERMS["FAILED"];
         if(response_code==1){
-            paymentStatus = "PAID";
+            paymentStatus = PAYMENT_TERMS["PAID"];
         }
         
         Ezpaypaymenttransactions.findById(transactionId).then(transactionInfo => {
             if (transactionInfo !== null) {
-                let savePayment = {
-                    "merchantId": transactionInfo.merchantId,
-                    "payerId": transactionInfo.payerId,
-                    "totalAmount": parseFloat(transactionInfo.totalAmount),
-                    "isRecurring": false,
-                    "payableDate": new Date(),
-                    "transactionStatus": paymentStatus,
-                    "gatewayResponse": gatewayResponse,
-                    "isActive": true,
-                    "createdAt": new Date()
-                };
-                transactionInfo.updateAttributes(savePayment).then(updatedTransaction => {
 
-                    if (updatedTransaction.transactionStatus == 'PAID') {
-                        res.redirect(successUrl);
-                    }
-                    else {
-                        res.redirect(failureUrl);
-                    }
+                //DO AUTOMATIC PAYMENT from saved card
+                Ezpaypaymenttransactions.getOrderDetails({"order_id":order_id},function(err,response){
+                    if(err){ 
 
-                }).catch(error => {
-                        res.redirect(failureUrl);
+                    }else{
+                    
+                        let insertJson = {
+                            "payerId":payerId,
+                            "order_id": order_id,
+                            "payer_identifier":response["payer_identifier"],
+                            "expire_month":response["expire_month"],
+                            "expire_year":response["expire_year"],
+                            "span":response["span"],
+                            "card_brand":response["card_brand"],
+                            "card_type":response["card_type"],
+                            "gatewayResponse": response
+                        };
+
+                        Ezpaypaymenttransactions.app.models.savedCardsMetaData.addEditUserCards(insertJson,function(err,cardRes){
+                            if(err){
+                                
+                            }else{
+                                //Auto Payment
+                                let _am = transactionInfo["totalAmount"];
+                                let _ir = false; let _ip = false;
+                                let _ts = PAYMENT_TERMS["PAID"];
+                                switch(transactionInfo["paymentFrequency"]){
+                                    case PAYMENT_TERMS["INSTALLMENTS"]:
+                                        _am = transactionInfo["downPayment"];
+                                        _ip = true; _ts = PAYMENT_TERMS["PARTIALLY_PAID"];
+                                    break;
+                                    case PAYMENT_TERMS["RECURRING"]:
+                                        _am = transactionInfo["downPayment"];
+                                        _ir = true; _ts = PAYMENT_TERMS["PARTIALLY_PAID"];
+                                    break;
+                                }
+
+                                cardRes["amount"] = _am;
+                                Ezpaypaymenttransactions.paymentWithSavedCard(cardRes).then(successRes=>{
+                                    //now redirect
+                                    let savePayment = {
+                                        "merchantId": transactionInfo.merchantId,
+                                        "payerId": transactionInfo.payerId,
+                                        "totalAmountPaid": parseFloat(_am),
+                                        "totalAmountPending": (parseFloat(transactionInfo["totalAmount"]) - parseFloat(_am)),
+                                        "isRecurring": _ir,
+                                        "isPartial": _ip,
+                                        "payableDate": new Date(),
+                                        "transactionStatus": _ts,
+                                        "gatewayResponse": gatewayResponse,
+                                        "isActive": true,
+                                        "createdAt": new Date()
+                                    };
+                                    transactionInfo.updateAttributes(savePayment).then(updatedTransaction => {
+
+                                        if (updatedTransaction.transactionStatus == PAYMENT_TERMS['PAID'] || updatedTransaction.transactionStatus == PAYMENT_TERMS['PARTIALLY_PAID']) {
+                                            res.redirect(successUrl);
+                                        }
+                                        else {
+                                            res.redirect(failureUrl);
+                                        }
+
+                                    }).catch(error => {
+                                        res.redirect(failureUrl);
+                                    });
+
+                                }).catch(err=>{
+
+                                })
+                            }
+                        });
+                    }
                 });
-
             }
         });
     }
@@ -1365,7 +1659,7 @@ module.exports = function (Ezpaypaymenttransactions) {
                     "totalAmount": parseFloat(_payload["amount"]),
                     "isRecurring": false,
                     "payableDate": new Date(),
-                    "transactionStatus": "REFUND",
+                    "transactionStatus": PAYMENT_TERMS["REFUND"],
                     "metaData": _payload,
                     "isActive": true,
                     "createdAt": new Date()
@@ -1484,6 +1778,10 @@ module.exports = function (Ezpaypaymenttransactions) {
     );
 
     Ezpaypaymenttransactions.paymentWithSavedCard = (paymentInfo, cb) => {
+        if (!isNull(paymentInfo["meta"])) {
+            paymentInfo = paymentInfo["meta"];
+        }
+
         Ezpaypaymenttransactions.app.models.savedCardsMetaData.findById(paymentInfo["cardId"]).then(cardInfo=>{
             if(isValidObject(cardInfo)){
                 funPayWithSavedCard({"cardInfo":cardInfo,"paymentInfo":paymentInfo}).then(sdkResponse=>{
@@ -1630,7 +1928,7 @@ module.exports = function (Ezpaypaymenttransactions) {
                 "transactionId":"f4cfd5c2-b55b-4d82-96fd-58f9911ac6d9", /*(optional,You can get this transactionId from payment request transaction)*/  
                 "buyerId":"",
                 "amount":"10.00",
-                "transaction_type":"CREDIT_CARD"
+                "transaction_type": PAYMENT_TERMS["CREDIT_CARD"]
             };
 
         const processPayload = {

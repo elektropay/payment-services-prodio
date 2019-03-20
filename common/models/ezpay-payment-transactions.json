@@ -21,6 +21,15 @@
     "totalAmount": {
       "type": "number"
     },
+    "downPayment":{
+      "type": "number"
+    },
+    "totalAmountPaid":{
+      "type": "number"
+    },
+    "totalAmountPending":{
+      "type": "number"
+    },
     "paymentFrequency":{
       "type": "string",
       "default":"ONETIME"
