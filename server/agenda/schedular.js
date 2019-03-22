@@ -10,22 +10,37 @@ function doSomething(data){
     console.log(data);
 }
 
+function graceful() {
+    console.log("shutting down...");
+    agenda.stop(function() {
+        console.log("agenda stopped and jobs  unlocked.");
+        process.exit(0);
+    });
+}
+
+//process.on("SIGTERM", graceful);
+//process.on("SIGINT", graceful);
+
 async function processOp(data){
     console.log(" \n \n auto event \n ");
-    console.log(data["attrs"]);
+    //console.log(data["attrs"]);
+    let attrData = data["attrs"]["data"];
     // Make a request for a user with a given ID
-    let apiCallUrl = data["attrs"]["data"]["apiUrl"]+"?installmentId="+data["attrs"]["data"]["jobId"];
+    let apiCallUrl = attrData["apiUrl"]+"?installmentId="+attrData["jobId"]+"&hostBaseURL="+attrData["hostBaseURL"];
     console.log(apiCallUrl);
 
     axios.get(apiCallUrl)
       .then(function (response) {
         // handle success
-        console.log(response);
+        console.log("response");
+        //console.log(response);
         return response;
       })
       .catch(function (error) {
         // handle error
+        console.log("eoorrrr");
         console.log(error);
+        processOp(data);
         return error;
       })
       .then(function () {
@@ -36,7 +51,7 @@ async function processOp(data){
 
 module.exports = {
     syncAllJobs : () =>{
-        agenda.jobs({}, function(e, jobs) {
+        agenda.jobs({priority: 0}, function(e, jobs) {
           if(e) throw e;
 
           var definedJobs = {};
@@ -51,7 +66,8 @@ module.exports = {
               !definedJobs[jobName].nextRunAt ||
               definedJobs[jobName].nextRunAt.getTime() < Date.now() ) {
 
-            agenda.every(interval, jobName);
+            //agenda.every(interval, jobName);
+            agenda.schedule(definedJobs[jobName].triggerAt, definedJobs[jobName].jobId, definedJobs[jobName]);
             console.log(jobName + ' is being bound by .every()');
 
           } else console.log(jobName + ' is NOT BEING BOUND by .every()');
