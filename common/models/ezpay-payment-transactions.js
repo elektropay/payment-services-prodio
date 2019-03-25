@@ -15,17 +15,12 @@ const {
 } = require('../../utility/helper');
 
 const {
-    paymentAdapter
+    paymentAdapter, schedular
 } = require('../../server/moduleImporter');
 
 const {PAYMENT_TERMS} = require('../../server/constant');
 
-const schedular = require('../../server/agenda/schedular');
-//schedular.setEvent(dataObj);
-schedular.initAgenda();
 //schedular.syncAllJobs();
-
-
 
 const CircularJSON = require('circular-json');
 
@@ -158,10 +153,10 @@ module.exports = function (Ezpaypaymenttransactions) {
         let saveJson = {}; let schedulingDone= false;
         //console.log(Date.now());
         installmentItems = JSON.parse(JSON.stringify(installmentItems));
-        console.log(installmentItems["installments"]);
+        //console.log(installmentItems["installments"]);
         async.each(installmentItems["installments"],function(item,clb){
 
-            console.log(item["dueDate"]+":::::"+new Date(item["dueDate"])+":::::"+new Date(item["dueDate"]+" 02:00"))
+            //console.log(item["dueDate"]+":::::"+new Date(item["dueDate"])+":::::"+new Date(item["dueDate"]+" 02:00"))
             saveJson = {
                 "refTransactionId":refTransactionId,
                 "installmentLabel": item["label"],
@@ -198,7 +193,7 @@ module.exports = function (Ezpaypaymenttransactions) {
         Ezpaypaymenttransactions.app.models.PaymentInstallments.findOne({"where":{"paymentStatus":"PENDING"},"order":"dueDate ASC"}).then(nextTransInfo=>{
             if(isValidObject(nextTransInfo)){
 
-                let evenObj = {"jobId":nextTransInfo["installmentId"],"hostBaseURL":hostBaseURL,"apiUrl":_surl,"triggerAt": nextTransInfo["dueDate"],"refTransactionId":nextTransInfo["refTransactionId"]} 
+                let evenObj = {"jobTitle":nextTransInfo["installmentLabel"],"jobId":nextTransInfo["installmentId"],"hostBaseURL":hostBaseURL,"apiUrl":_surl,"triggerAt": nextTransInfo["dueDate"],"refTransactionId":nextTransInfo["refTransactionId"]} 
                 schedular.setEvent(evenObj);
                 console.log("scheduling done..."+new Date(nextTransInfo["dueDate"]));
             }else{
@@ -280,10 +275,8 @@ module.exports = function (Ezpaypaymenttransactions) {
         //1. do payment
         //2. update total paid amount
         //3. schedule next transaction
-        console.log("11111111");
         Ezpaypaymenttransactions.app.models.PaymentInstallments.findOne({"where":{"installmentId": installmentId },"include":[{relation:'PaymentTransaction'}]}).then(installInfo=>{
             if(isValidObject(installInfo)){
-                console.log("22222");
                 installInfo = JSON.parse(JSON.stringify(installInfo));
                 //console.log(installInfo);
                 let payerId = installInfo["PaymentTransaction"]["payerId"];

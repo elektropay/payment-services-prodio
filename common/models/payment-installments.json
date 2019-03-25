@@ -35,7 +35,11 @@
     },
     "createdAt": {
       "type": "date"
-    }
+    },
+    "isActive":{
+      "type": "boolean",
+      "default": true
+    },
   },
   "validations": [],
   "relations": {
