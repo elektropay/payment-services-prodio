@@ -12,7 +12,6 @@
       "id": true,
       "defaultFn": "uuidv4"
     },
-    
     "firstName": {
       "type": "string"
     },
@@ -43,8 +42,7 @@
     }
   },
   "validations": [],
-  "relations": {
-  },
+  "relations": {},
   "acls": [],
   "methods": {}
 }

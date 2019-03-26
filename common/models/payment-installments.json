@@ -1,53 +1,52 @@
 {
-  "name": "savedCardsMetaData",
-  "plural": "savedCardsMetaData",
+  "name": "PaymentInstallments",
+  "plural": "PaymentInstallments",
   "base": "PersistedModel",
   "idInjection": true,
   "options": {
     "validateUpsert": true
   },
   "properties": {
-    "cardId": {
+    "installmentId": {
       "type": "string",
       "id": true,
       "defaultFn": "uuidv4"
     },
-    "payerId": {
+    "refTransactionId": {
       "type": "string"
     },
-    "cardHolderName": {
+    "installmentLabel": {
       "type": "string"
     },
-    "cardNumberAlias": {
-      "type": "string"
+    "amount": {
+      "type": "number"
     },
-    "expiryDate": {
-      "type": "string"
-    },
-    "cardType": {
-      "type": "string"
-    },
-    "cardRefId": {
-      "type": "string"
-    },
-    "isActive": {
-      "type": "boolean",
-      "default": true
-    },
-    "isDefault": {
-      "type": "boolean",
-      "default": true
-    },
-    "savedAt": {
+    "dueDate": {
       "type": "date"
+    },
+    "paymentType": {
+      "type": "string"
+    },
+    "paymentStatus": {
+      "type": "string"
+    },
+    "metaData": {
+      "type": "object"
+    },
+    "createdAt": {
+      "type": "date"
+    },
+    "isActive":{
+      "type": "boolean",
+      "default": true
     }
   },
   "validations": [],
   "relations": {
-    "Payee": {
+    "PaymentTransaction": {
       "type": "belongsTo",
-      "model": "ezpayPayees",
-      "foreignKey": "payerId"
+      "model": "ezpayPaymentTransactions",
+      "foreignKey": "refTransactionId"
     }
   },
   "acls": [],
