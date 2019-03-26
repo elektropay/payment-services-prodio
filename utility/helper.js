@@ -1,6 +1,6 @@
 const uuid = require('uuid/v4');
 const isEmpty = require('lodash/isEmpty');
-const isNull = require('lodash/isNull');
+//const isNull = require('lodash/isNull');
 const isUndefined = require('lodash/isUndefined');
 const flatten = require('lodash/flatten');
 const compact = require('lodash/compact');
@@ -41,3 +41,15 @@ exports.clean = arr => clean(arr);
 exports.isArray = arr => isArray(arr);
 exports.isObject = obj => isObject(obj);
 exports.print = obj => console.log(obj);
+
+const isNull = function(val) {
+    if (typeof val === 'string') {
+        val = val.trim();
+    }
+    if (val === undefined || val === null || typeof val === 'undefined' || val === '' || val === 'undefined') {
+        return true;
+    }
+    return false;
+};
+
+exports.isNull = str => isNull(str);

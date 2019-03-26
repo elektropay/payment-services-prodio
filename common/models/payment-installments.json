@@ -39,7 +39,7 @@
     "isActive":{
       "type": "boolean",
       "default": true
-    },
+    }
   },
   "validations": [],
   "relations": {

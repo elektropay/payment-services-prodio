@@ -11,6 +11,7 @@ const {
     isArray,
     isObject,
     print,
+    isNull
 } = require('../../utility/helper');
 
 const {
@@ -51,7 +52,20 @@ module.exports = function(Paymentinstallments) {
         }
     );
 
+    function funScheduleJob(transInfo,hostBaseURL,req){
+        let url = funGetBaseUrl(hostBaseURL,req);
+        let _surl = url + "/api/ezpayPaymentTransactions/autoDeductPayment";
+        _surl = funNormalizeStr(_surl);
+
+        let evenObj = {"jobTitle":transInfo["installmentLabel"],"jobId":transInfo["installmentId"],"hostBaseURL":hostBaseURL,"apiUrl":_surl,"triggerAt": transInfo["dueDate"],"refTransactionId":transInfo["refTransactionId"]} 
+        schedular.setEvent(evenObj);
+        console.log("scheduling done..."+new Date(transInfo["dueDate"]));
+    }
+
     Paymentinstallments.addNewInstallment = (installmentData,req, cb) => {
+
+    	if (!isNull(installmentData["meta"])) { installmentData = installmentData["meta"]; }
+
     	let saveJson = {
             "refTransactionId":installmentData["transactionId"],
             "installmentLabel": installmentData["installmentLabel"],
@@ -65,6 +79,7 @@ module.exports = function(Paymentinstallments) {
 
         Paymentinstallments.create(saveJson).then(transInfo=>{
             //TODO : Use agenda and set event
+            funScheduleJob(transInfo,installmentData["hostBaseURL"],req);
             cb(null,{"success":true,"data": transInfo});
         }).catch(err=>{
             console.log(err);
@@ -105,18 +120,22 @@ module.exports = function(Paymentinstallments) {
     );
 
     Paymentinstallments.editInstallment = (installmentData,req, cb) => {
+    	if (!isNull(installmentData["meta"])) { installmentData = installmentData["meta"]; }
+
     	Paymentinstallments.findById(installmentData["installmentId"]).then(installInfo=>{
     		if(isValidObject(installInfo)){
     			let updateJson = {
 			            "refTransactionId":installmentData["transactionId"],
 			            "installmentLabel": installmentData["installmentLabel"],
 			            "amount":installmentData["amount"],
-			            "dueDate":new Date(installmentData["dueDate"]+ "02:00"),
+			            "dueDate":new Date(installmentData["dueDate"]+" 02:00"),
 			            "paymentStatus":installmentData["paymentStatus"],
 			            "metaData":installmentData["metaData"]
 			        };
+			        console.log(updateJson)
     			installInfo.updateAttributes(updateJson).then(updateInfo=>{
     				//TODO: Update agenda
+    				schedular.rescheduleEvent(installmentData["installmentId"],updateJson);
     				cb(null,{"success":true,"data": updateInfo});
     			});
     		}else{
@@ -163,10 +182,13 @@ module.exports = function(Paymentinstallments) {
     );
 
     Paymentinstallments.removeInstallment = (installmentData,req, cb) => {
+    	if (!isNull(installmentData["meta"])) { installmentData = installmentData["meta"]; }
+
     	Paymentinstallments.findById(installmentData["installmentId"]).then(installInfo=>{
     		if(isValidObject(installInfo)){
     			Paymentinstallments.removeById(installmentData["installmentId"]).then(data=>{
     				//TODO: cancel event
+    				schedular.cancelEvent(installmentData["installmentId"]);
     				cb(null,{"success":true,"data": data});
     			}).catch(err=>{
     				cb(new HttpErrors.InternalServerError('Error while removing installment.', {
