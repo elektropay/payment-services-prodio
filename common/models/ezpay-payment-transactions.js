@@ -26,7 +26,8 @@ const {
 
 //schedular.syncAllJobs();
 
-const CircularJSON = require('circular-json');
+//const CircularJSON = require('circular-json');
+const {parse, stringify} = require('flatted/cjs');
 
 const paymentClass = require('payment-module-prodio');
 const paymentObj = new paymentClass('http://localhost:3010/api/');
@@ -561,7 +562,7 @@ module.exports = function(Ezpaypaymenttransactions) {
             url = paymentInfo["BASE_URL"];
         } else {
             if (!isNull(req)) {
-                req = JSON.parse(CircularJSON.stringify(req));
+                req = JSON.parse(stringify(req));
                 url = req.headers.origin;
             }
         }
@@ -727,7 +728,7 @@ module.exports = function(Ezpaypaymenttransactions) {
             url = hostBaseURL;
         } else {
             if (!isNull(req)) {
-                req = JSON.parse(CircularJSON.stringify(req));
+                req = JSON.parse(stringify(req));
                 console.log(req.headers);
                 url = req.headers.origin;
             }
@@ -741,6 +742,7 @@ module.exports = function(Ezpaypaymenttransactions) {
 
     Ezpaypaymenttransactions.processPayment = (transactionId, payerId, cardId, cardInfo, hostBaseURL, req, cb) => {
         let transactionPayload = cardInfo;
+        let cardType = "CREDIT_CARD";
         // console.log("transactionPayload",cardInfo.meta);
         if (isNull(cardInfo)) {
             cardInfo = {
@@ -748,11 +750,11 @@ module.exports = function(Ezpaypaymenttransactions) {
             };
         }
         if (!isNull(cardInfo["meta"])) {
+            cardType = cardInfo["meta"]["cardType"];
             cardInfo = cardInfo.meta.cardInfo ? cardInfo.meta.cardInfo : {};
         }
 
         let url = funGetBaseUrl(hostBaseURL, req);
-
 
         Ezpaypaymenttransactions.app.models.ezpayPayees.findById(payerId).then(payeeInfo => {
             if (isValidObject(payeeInfo)) {
@@ -772,7 +774,8 @@ module.exports = function(Ezpaypaymenttransactions) {
                                     let _payload = {
                                         "cardInfo": cardDataInfo,
                                         "payerInfo": payeeInfo,
-                                        "paymentInfo": transInfo
+                                        "paymentInfo": transInfo,
+                                        "cardType":cardType
                                     };
                                     funMakePaymentInGateway(_payload).then(sdkResponse => {
                                         transInfo.updateAttributes({
@@ -809,7 +812,8 @@ module.exports = function(Ezpaypaymenttransactions) {
                                     let _payload = {
                                         "cardInfo": cardInfo,
                                         "payerInfo": payeeInfo,
-                                        "paymentInfo": transInfo
+                                        "paymentInfo": transInfo,
+                                        "cardType":cardType
                                     };
                                     funMakePaymentInGateway(_payload).then(sdkResponse => {
                                         transInfo.updateAttributes({
@@ -860,7 +864,8 @@ module.exports = function(Ezpaypaymenttransactions) {
                                     let _payload = {
                                         "cardInfo": cardInfo,
                                         "payerInfo": payeeInfo,
-                                        "paymentInfo": transInfo
+                                        "paymentInfo": transInfo,
+                                        "cardType":cardType
                                     };
 
                                     let _ts = "PAID";
@@ -1655,66 +1660,70 @@ module.exports = function(Ezpaypaymenttransactions) {
                             "gatewayResponse": response
                         };
 
-                        Ezpaypaymenttransactions.app.models.savedCardsMetaData.addEditUserCards(insertJson, function(err, cardRes) {
-                            if (err) {
+                        transactionInfo.updateAttributes({"gatewayResponse":gatewayResponse}).then(successInfo=>{
 
-                            } else {
-                                //Auto Payment
-                                let _am = transactionInfo["totalAmount"];
-                                let _ir = false;
-                                let _ip = false;
-                                let _ts = PAYMENT_TERMS["PAID"];
-                                switch (transactionInfo["paymentFrequency"]) {
-                                    case PAYMENT_TERMS["INSTALLMENTS"]:
-                                        _am = transactionInfo["downPayment"];
-                                        _ip = true;
-                                        _ts = PAYMENT_TERMS["PARTIALLY_PAID"];
-                                        break;
-                                    case PAYMENT_TERMS["RECURRING"]:
-                                        _am = transactionInfo["downPayment"];
-                                        _ir = true;
-                                        _ts = PAYMENT_TERMS["PARTIALLY_PAID"];
-                                        break;
-                                }
+                            Ezpaypaymenttransactions.app.models.savedCardsMetaData.addEditUserCards(insertJson, function(err, cardRes) {
+                                if (err) {
 
-                                cardRes["amount"] = _am;
-                                Ezpaypaymenttransactions.paymentWithSavedCard(cardRes, function(err, successRes) {
-                                    // Ezpaypaymenttransactions.paymentWithSavedCard(cardRes).then(successRes=>{
-                                    if (err) {
-                                        //res.redirect(failureUrl);
-                                        _ts = PAYMENT_TERMS["FAILED"];
-                                    } else {}
-                                    //now redirect
-                                    let savePayment = {
-                                        "merchantId": transactionInfo.merchantId,
-                                        "payerId": transactionInfo.payerId,
-                                        "isRecurring": _ir,
-                                        "isPartial": _ip,
-                                        "transactionStatus": _ts,
-                                        "gatewayResponse": gatewayResponse
-                                    };
-                                    if (_ts != PAYMENT_TERMS["FAILED"]) {
-                                        savePayment["payableDate"] = new Date();
-                                        savePayment["totalAmountPaid"] = parseFloat(_am);
-                                        savePayment["totalAmountPending"] = (parseFloat(transactionInfo["totalAmount"]) - parseFloat(_am));
+                                } else {
+                                    //Auto Payment
+                                    let _am = transactionInfo["totalAmount"];
+                                    let _ir = false;
+                                    let _ip = false;
+                                    let _ts = PAYMENT_TERMS["PAID"];
+                                    switch (transactionInfo["paymentFrequency"]) {
+                                        case PAYMENT_TERMS["INSTALLMENTS"]:
+                                            _am = transactionInfo["downPayment"];
+                                            _ip = true;
+                                            _ts = PAYMENT_TERMS["PARTIALLY_PAID"];
+                                            break;
+                                        case PAYMENT_TERMS["RECURRING"]:
+                                            _am = transactionInfo["downPayment"];
+                                            _ir = true;
+                                            _ts = PAYMENT_TERMS["PARTIALLY_PAID"];
+                                            break;
                                     }
 
-                                    transactionInfo.updateAttributes(savePayment).then(updatedTransaction => {
-
-                                        if (updatedTransaction.transactionStatus == PAYMENT_TERMS['PAID'] || updatedTransaction.transactionStatus == PAYMENT_TERMS['PARTIALLY_PAID']) {
-                                            res.redirect(successUrl);
-                                        } else {
-                                            res.redirect(failureUrl);
+                                    cardRes["amount"] = _am;
+                                    Ezpaypaymenttransactions.paymentWithSavedCard(cardRes, function(err, successRes) {
+                                        // Ezpaypaymenttransactions.paymentWithSavedCard(cardRes).then(successRes=>{
+                                        if (err) {
+                                            //res.redirect(failureUrl);
+                                            _ts = PAYMENT_TERMS["FAILED"];
+                                        } else {}
+                                        //now redirect
+                                        let savePayment = {
+                                            "merchantId": transactionInfo.merchantId,
+                                            "payerId": transactionInfo.payerId,
+                                            "isRecurring": _ir,
+                                            "isPartial": _ip,
+                                            "transactionStatus": _ts,
+                                            "gatewayResponse": gatewayResponse
+                                        };
+                                        if (_ts != PAYMENT_TERMS["FAILED"]) {
+                                            savePayment["payableDate"] = new Date();
+                                            savePayment["totalAmountPaid"] = parseFloat(_am);
+                                            savePayment["totalAmountPending"] = (parseFloat(transactionInfo["totalAmount"]) - parseFloat(_am));
                                         }
 
-                                    }).catch(error => {
-                                        //res.redirect(failureUrl);
+                                        transactionInfo.updateAttributes(savePayment).then(updatedTransaction => {
+
+                                            if (updatedTransaction.transactionStatus == PAYMENT_TERMS['PAID'] || updatedTransaction.transactionStatus == PAYMENT_TERMS['PARTIALLY_PAID']) {
+                                                res.redirect(successUrl);
+                                            } else {
+                                                res.redirect(failureUrl);
+                                            }
+
+                                        }).catch(error => {
+                                            //res.redirect(failureUrl);
+                                        });
+
+
                                     });
+                                }
+                            });
 
-
-                                });
-                            }
-                        });
+                        })
                     }
                 });
             }
@@ -2103,14 +2112,17 @@ module.exports = function(Ezpaypaymenttransactions) {
     Ezpaypaymenttransactions.dummyPayment = (data, cb) => {
 
         let json = {
-            "transactionId": "f4cfd5c2-b55b-4d82-96fd-58f9911ac6d9",
-            "buyerId": "",
-            "amount": "10.00",
-            "transaction_type": PAYMENT_TERMS["CREDIT_CARD"]
+            "transactionId": "feda88d3-d1f0-4a73-ab16-474dd12dadc9",
+            "payerId": "fd9ee59d-7475-49cb-a15f-e6c70ef8240d",
+            "cardType":"DEBIT_CARD", // or DEBIT_CARD - default is CREDIT_CARD
+            "hostBaseURL":"http://localhost:3010/", //base url of the host where service apis are running
+            "successUrl": "http://localhost:3010/success",   //redirection url should be an http or https url 
+            "failureUrl": "http://localhost:3010/failure",   //should be an http or https url 
+            "returnUrl":"http://localhost:3010/adad"  //should be an http or https url 
         };
 
         const processPayload = {
-            'action': "MAKE_REFUND",
+            'action': "PROCESS_PAYMENT",
             'meta': json
         };
         paymentObj.execute(processPayload, response => {
