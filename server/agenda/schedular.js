@@ -1,4 +1,4 @@
-const Agenda = require('Agenda');
+const Agenda = require('agenda');
 const axios = require('axios');
 const MongoClient = require('mongodb').MongoClient;
 let mongoConnectionString, agenda;
