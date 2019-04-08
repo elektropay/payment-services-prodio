@@ -39,13 +39,13 @@ module.exports = function(Savedcardsmetadata) {
     		if(cardInfo){
     			//update
     			cardInfo.updateAttributes(insertJson).then(insertJson=>{
-    				cb(null,{"success":true});
+    				cb(null,{"success":true,"cardId": insertJson["cardId"]});
     			});
 
     		}else{
     			//insert
     			Savedcardsmetadata.create(cardData).then(newCardInfo=>{
-    				cb(null,{"success":true});
+    				cb(null,{"success":true,"cardId": newCardInfo["cardId"] });
     			}).catch(err=>{
 
     			});
