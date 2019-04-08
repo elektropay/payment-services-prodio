@@ -751,8 +751,12 @@ module.exports = function(Ezpaypaymenttransactions) {
         }
         if (!isNull(cardInfo["meta"])) {
             cardType = cardInfo["meta"]["cardType"];
+            if (!isNull(cardInfo["meta"]["hostBaseURL"])) {
+                hostBaseURL = cardInfo["meta"]["hostBaseURL"];
+            }
             cardInfo = cardInfo.meta.cardInfo ? cardInfo.meta.cardInfo : {};
         }
+
 
         let url = funGetBaseUrl(hostBaseURL, req);
 
@@ -1633,7 +1637,7 @@ module.exports = function(Ezpaypaymenttransactions) {
         }
 
         let paymentStatus = PAYMENT_TERMS["FAILED"];
-        if (response_code == 1) {
+        if (parseInt(response_code) == 1 || response_code == "1") {
             paymentStatus = PAYMENT_TERMS["PAID"];
         }
 
@@ -2125,6 +2129,8 @@ module.exports = function(Ezpaypaymenttransactions) {
             'action': "PROCESS_PAYMENT",
             'meta': json
         };
+
+
         paymentObj.execute(processPayload, response => {
             console.log("response", response.status);
             console.log("response data", response.data);
