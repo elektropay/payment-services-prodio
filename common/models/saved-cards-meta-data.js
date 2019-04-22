@@ -1,5 +1,4 @@
 'use strict';
-
 module.exports = function(Savedcardsmetadata) {
 
 	Savedcardsmetadata.remoteMethod(
@@ -9,7 +8,7 @@ module.exports = function(Savedcardsmetadata) {
             },
             description: ["This request will provide transaction details"],
             accepts: [
-            { arg: 'cardData', type: 'string', required: false,  http: { source: 'body' }},
+            { arg: 'cardData', type: 'object', required: false,  http: { source: 'body' }},
             ],
             returns: {
                 type: 'object',

@@ -302,6 +302,22 @@ module.exports = function(Ezpaypaymenttransactions) {
         }
     );
 
+    function funUpdateNextPayableDate(refTransactionId){
+        try{
+            Ezpaypaymenttransactions.findById(refTransactionId).then(transInfo=>{
+                if(isValidObject(transInfo)){
+                    Ezpaypaymenttransactions.app.models.PaymentInstallments.findOne({"where":{"refTransactionId": refTransactionId,"paymentStatus": PAYMENT_TERMS["PENDING"] },"order":"dueDate ASC"}).then(installInfo=>{
+                        transInfo.updateAttributes({"payableDate": installInfo["dueDate"] }).then(updated=>{
+
+                        });
+                    });
+                }
+            });
+        }catch(err){
+            console.log("update failed...");
+        }
+    }
+
     Ezpaypaymenttransactions.autoDeductPayment = (installmentId, hostBaseURL, req, cb) => {
         //console.log(installmentId)
         //1. do payment
@@ -333,6 +349,7 @@ module.exports = function(Ezpaypaymenttransactions) {
                                 //installment failed
                                 let updateMsg = {
                                     "paymentStatus": PAYMENT_TERMS["FAILED"],
+                                    "paymentTransactionDate": new Date(),
                                     "metaData": {
                                         "errorMessage": JSON.stringify(err)
                                     }
@@ -343,6 +360,7 @@ module.exports = function(Ezpaypaymenttransactions) {
                                 }, updateMsg).then(updateInstll => {
                                     //installInfo.updateAttributes().then(updateInstll=>{
                                     //schedule same transaction again
+                                    funUpdateNextPayableDate(installInfo["refTransactionId"]);
                                     // funScheduleNextTransaction(installInfo["refTransactionId"],hostBaseURL,req);
                                     cb(null, {
                                         "success": true
@@ -352,7 +370,7 @@ module.exports = function(Ezpaypaymenttransactions) {
                                 //now redirect
                                 let updateMsg = {
                                     "paymentStatus": PAYMENT_TERMS["PAID"],
-                                    "paymentDate": new Date()
+                                    "paymentTransactionDate": new Date()
                                 };
                                 Ezpaypaymenttransactions.app.models.PaymentInstallments.updateAll({
                                     "installmentId": installmentId
@@ -371,6 +389,7 @@ module.exports = function(Ezpaypaymenttransactions) {
                                             }
                                             transInfo.updateAttributes(savePayment).then(updatedTransaction => {
                                                 //schedule next payment
+                                                funUpdateNextPayableDate(installInfo["refTransactionId"]);
                                                 //funScheduleNextTransaction(installInfo["refTransactionId"],hostBaseURL,req);
                                                 cb(null, {
                                                     "success": true
@@ -1705,10 +1724,11 @@ module.exports = function(Ezpaypaymenttransactions) {
                                             "gatewayResponse": gatewayResponse
                                         };
                                         if (_ts != PAYMENT_TERMS["FAILED"]) {
-                                            savePayment["payableDate"] = new Date();
+                                            
                                             savePayment["totalAmountPaid"] = parseFloat(_am);
                                             savePayment["totalAmountPending"] = (parseFloat(transactionInfo["totalAmount"]) - parseFloat(_am));
                                         }
+                                        savePayment["paymentDate"] = new Date();
 
                                         transactionInfo.updateAttributes(savePayment).then(updatedTransaction => {
 

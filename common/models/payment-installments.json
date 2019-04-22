@@ -33,6 +33,9 @@
     "metaData": {
       "type": "object"
     },
+    "paymentTransactionDate":{
+      "type": "date"
+    },
     "createdAt": {
       "type": "date"
     },
