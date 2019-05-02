@@ -17,6 +17,10 @@ const {
 } = require('../../server/moduleImporter');
 const async = require('async');
 
+const convertObjectIdToString = function(objectID) {
+    return objectID.toString().substring(0,8);
+};
+
 const isNull = function(val) {
     if (typeof val === 'string') {
         val = val.trim();
@@ -61,17 +65,21 @@ module.exports = function(Ezpaypayees) {
 
     Ezpaypayees.addPayee = (merchantId, payeeInfo, cb) => {
 
+        let userId = "";
         if (!isNull(payeeInfo["meta"])) {
             payeeInfo = payeeInfo["meta"]["payerInfo"];
+            userId = payeeInfo["userId"];
+        }
+
+        let whereCond = {"where": { "email": String(payeeInfo["email"]).toLowerCase() }};
+
+        if(!isNull(userId)){
+            whereCond = {"where": { "userId": convertObjectIdToString(userId) }};
         }
 
         if(isNull(merchantId)){
-          console.log("No merhant id");
-          Ezpaypayees.findOne({
-                "where": {
-                    "email": String(payeeInfo["email"]).toLowerCase()
-                }
-            }, function(err, payeeData) {
+          
+          Ezpaypayees.findOne(whereCond, function(err, payeeData) {
                 if (err) {
                     cb(new HttpErrors.InternalServerError('Query Error', {
                         expose: false
@@ -82,7 +90,7 @@ module.exports = function(Ezpaypayees) {
                         //if yes, send valid success response
                         //if not
                         if(isNull(payeeData["merchantId"])){
-                            cb(new HttpErrors.InternalServerError('Email Id already exists.', {
+                            cb(new HttpErrors.InternalServerError('Payee Id already exists.', {
                                 expose: false
                             }));
                         }else{
@@ -93,6 +101,7 @@ module.exports = function(Ezpaypayees) {
 
                         let savePayee = {
                             "merchantId": merchantId,
+                            "userId": convertObjectIdToString(userId),
                             "firstName": isValid(payeeInfo["firstName"]) ? payeeInfo["firstName"] : "",
                             "lastName": isValid(payeeInfo["lastName"]) ? payeeInfo["lastName"] : "",
                             "email": isValid(payeeInfo["email"]) ? String(payeeInfo["email"]).toLowerCase() : "",
@@ -128,11 +137,7 @@ module.exports = function(Ezpaypayees) {
                   }));
               } else {
                   if (isValidObject(merchantInfo)) {
-                      Ezpaypayees.findOne({
-                          "where": {
-                              "email": payeeInfo["email"]
-                          }
-                      }, function(err, payeeData) {
+                      Ezpaypayees.findOne(whereCond, function(err, payeeData) {
                           if (err) {
                               cb(new HttpErrors.InternalServerError('Query Error', {
                                   expose: false
@@ -144,6 +149,7 @@ module.exports = function(Ezpaypayees) {
 
                                   let savePayee = {
                                       "merchantId": merchantId,
+                                      "userId": convertObjectIdToString(userId),
                                       "firstName": isValid(payeeInfo["firstName"]) ? payeeInfo["firstName"] : "",
                                       "lastName": isValid(payeeInfo["lastName"]) ? payeeInfo["lastName"] : "",
                                       "email": isValid(payeeInfo["email"]) ? String(payeeInfo["email"]).toLowerCase() : "",
@@ -346,7 +352,7 @@ module.exports = function(Ezpaypayees) {
     }
 
 
-        Ezpaypayees.remoteMethod(
+    Ezpaypayees.remoteMethod(
         'getPayerProfileByEmail', {
             http: {
                 verb: 'post'
