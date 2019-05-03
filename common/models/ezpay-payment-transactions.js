@@ -2157,4 +2157,52 @@ module.exports = function(Ezpaypaymenttransactions) {
             return cb(null, response.data);
         })
     }
+
+
+
+    Ezpaypaymenttransactions.remoteMethod(
+        'setTransactionStatusManually', {
+            http: {
+                verb: 'post'
+            },
+            description: ["This request will provide transaction details"],
+            accepts: [
+            {
+                arg: 'transactionId', type: 'string', 'http': { 'source': 'query'}, 'required': true
+            } ,
+            {
+                arg: 'transactionStatus', type: 'string', 'http': { 'source': 'query'}, 'required': true
+            } 
+            ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaypaymenttransactions.setTransactionStatusManually = (transactionId,transactionStatus, cb) => {
+        Ezpaypaymenttransactions.findById(transactionId).then(transInfo=>{
+            if(isValidObject(transInfo)){
+                if(PAYMENT_TERMS[transactionStatus] == transactionStatus){
+                    transInfo.updateAttributes({"transactionStatus":transactionStatus}).then(update=>{
+                        cb(null,{"success":true});
+                    });
+                }else{
+                   cb(new HttpErrors.InternalServerError('Invalid Transaction Status.', {
+                        expose: false
+                    })); 
+                } 
+            }else{
+                cb(new HttpErrors.InternalServerError('Invalid Transaction Id.', {
+                    expose: false
+                }));
+            }
+        }).catch(err=>{
+            cb(new HttpErrors.InternalServerError('Error while fetching transaction info.', {
+                expose: false
+            }));
+        })
+    }
+
 };
