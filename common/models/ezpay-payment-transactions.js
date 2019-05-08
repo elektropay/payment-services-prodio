@@ -112,8 +112,7 @@ module.exports = function(Ezpaypaymenttransactions) {
         delete paymentDetails["isRecurring"];
         delete paymentDetails["payableDate"];
 
-
-        savePayment["metaData"] = paymentDetails;
+        //savePayment["metaData"] = paymentDetails;
 
         Ezpaypaymenttransactions.create(savePayment).then(transactionInfo => {
             //console.log("transactionInfo", transactionInfo);
