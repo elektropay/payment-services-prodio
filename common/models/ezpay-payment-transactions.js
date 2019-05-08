@@ -124,10 +124,10 @@ module.exports = function(Ezpaypaymenttransactions) {
                         //cb(null, { "success": true,"transactionId": transactionInfo["transactionId"]});
                         break;
                     case PAYMENT_TERMS["INSTALLMENTS"]:
-                        funCreateInstallments(transactionInfo["transactionId"], paymentInfo["installmentItems"], savePayment["totalAmount"], paymentInfo["hostBaseURL"], req);
+                        funCreateInstallments(transactionInfo["transactionId"], paymentInfo["installmentItems"], savePayment["totalAmount"], paymentInfo["hostBaseURL"], req,transactionInfo["merchantId"],transactionInfo["payerId"]);
                         break;
                     case PAYMENT_TERMS["RECURRING"]:
-                        funCreateRecurringPlan(transactionInfo["transactionId"], paymentInfo["recurringItems"], savePayment["totalAmount"], paymentInfo["hostBaseURL"], req);
+                        funCreateRecurringPlan(transactionInfo["transactionId"], paymentInfo["recurringItems"], savePayment["totalAmount"], paymentInfo["hostBaseURL"], req,transactionInfo["merchantId"],transactionInfo["payerId"]);
                         break;
                 }
             } else {
@@ -147,7 +147,7 @@ module.exports = function(Ezpaypaymenttransactions) {
         });
     }
 
-    function funCreateInstallments(refTransactionId, installmentItems, totalAmount, hostBaseURL, req) {
+    function funCreateInstallments(refTransactionId, installmentItems, totalAmount, hostBaseURL, req, merchantId, payerId) {
         let saveJson = {};
         let schedulingDone = false;
         //console.log(Date.now());
@@ -158,6 +158,8 @@ module.exports = function(Ezpaypaymenttransactions) {
             //console.log(item["dueDate"]+":::::"+new Date(item["dueDate"])+":::::"+new Date(item["dueDate"]+" 02:00"))
             saveJson = {
                 "refTransactionId": refTransactionId,
+                "merchantId": merchantId,
+                "payerId": payerId,
                 "installmentLabel": item["label"],
                 "amount": item["amount"],
                 "dueDate": new Date(item["dueDate"]),
@@ -237,11 +239,13 @@ module.exports = function(Ezpaypaymenttransactions) {
         });
     }
 
-    function funCreateRecurringPlan(refTransactionId, recurringItems, totalAmount, hostBaseURL, req) {
+    function funCreateRecurringPlan(refTransactionId, recurringItems, totalAmount, hostBaseURL, req, merchantId, payerId) {
         let saveJson = {};
         async.each(recurringItems["installments"], function(item, clb) {
             saveJson = {
                 "refTransactionId": refTransactionId,
+                "merchantId": merchantId,
+                "payerId": payerId,
                 "installmentLabel": item["label"],
                 "amount": item["amount"],
                 "dueDate": new Date(item["dueDate"] + " 03:00"),
@@ -1708,12 +1712,15 @@ module.exports = function(Ezpaypaymenttransactions) {
                                     }
 
                                     cardRes["amount"] = _am;
+                                    let pymentStatus = PAYMENT_TERMS["FAILED"];
                                     Ezpaypaymenttransactions.paymentWithSavedCard(cardRes, function(err, successRes) {
                                         // Ezpaypaymenttransactions.paymentWithSavedCard(cardRes).then(successRes=>{
                                         if (err) {
                                             //res.redirect(failureUrl);
                                             _ts = PAYMENT_TERMS["FAILED"];
-                                        } else {}
+                                        } else {
+                                            pymentStatus = PAYMENT_TERMS["PAID"];
+                                        }
                                         //now redirect
                                         let savePayment = {
                                             "merchantId": transactionInfo.merchantId,
@@ -1729,6 +1736,8 @@ module.exports = function(Ezpaypaymenttransactions) {
                                             savePayment["totalAmountPending"] = (parseFloat(transactionInfo["totalAmount"]) - parseFloat(_am));
                                         }
                                         savePayment["paymentDate"] = new Date();
+
+                                        funInsertTransaction(pymentStatus,transactionInfo,cardRes["amount"]);
 
                                         transactionInfo.updateAttributes(savePayment).then(updatedTransaction => {
 
@@ -1751,6 +1760,26 @@ module.exports = function(Ezpaypaymenttransactions) {
                     }
                 });
             }
+        });
+    }
+
+    function funInsertTransaction(pymentStatus,transactionInfo,amount){
+        let insertJson = {
+            "refTransactionId": transactionInfo["transactionId"],
+            "merchantId": transactionInfo["merchantId"],
+            "payerId": transactionInfo["payerId"],
+            "installmentLabel":"Down Payment",
+            "amount": parseFloat(amount),
+            "dueDate": transactionInfo["payableDate"],
+            "paymentStatus": pymentStatus ,
+            "metaData":{},
+            "createdAt": new Date(),
+            "isActive":true,
+            "paymentTransactionDate": new Date()
+        };
+
+        Ezpaypaymenttransactions.app.models.PaymentInstallments.create(insertJson).then(success=>{
+
         });
     }
 
@@ -2204,5 +2233,31 @@ module.exports = function(Ezpaypaymenttransactions) {
             }));
         })
     }
+
+
+    Ezpaypaymenttransactions.remoteMethod(
+        'getRevenueGraphData', {
+            http: {
+                verb: 'post'
+            },
+            description: ["This request will provide transaction details"],
+            accepts: [
+            {
+                arg: 'merchantId', type: 'string', 'http': { 'source': 'query'}, 'required': true
+            } ,
+            {
+                arg: 'year', type: 'string', 'http': { 'source': 'query'}, 'required': false
+            } 
+            ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaypaymenttransactions.getRevenueGraphData = (merchantId,year, cb) => {
+    }
+
 
 };
