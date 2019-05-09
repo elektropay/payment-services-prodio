@@ -95,14 +95,17 @@ module.exports = function(Ezpaypaymenttransactions) {
             "totalAmountPaid": 0.00,
             "totalAmountPending": parseFloat(totalAmount) ? parseFloat(totalAmount) : '0.00',
             "totalAmount": parseFloat(totalAmount) ? parseFloat(totalAmount) : '0.00',
-            "isRecurring": paymentInfo.isRecurring ? paymentInfo.isRecurring : '',
+            "isRecurring": paymentInfo.isRecurring ? paymentInfo.isRecurring : false,
             "paymentFrequency": paymentInfo.paymentFrequency ? paymentInfo.paymentFrequency : PAYMENT_TERMS['ONETIME'],
-            "downPayment": paymentInfo.downPayment ? paymentInfo.downPayment : '0.00',
-            "payableDate": paymentInfo.payableDate ? paymentInfo.payableDate : '',
+            "payableDate": paymentInfo.payableDate ? paymentInfo.payableDate : (paymentInfo.dueDate?paymentInfo.dueDate:''),
             "transactionStatus": PAYMENT_TERMS["PENDING"],
             "isActive": true,
             "createdAt": new Date()
         };
+
+        if(savePayment["paymentFrequency"]!=PAYMENT_TERMS["ONETIME"]){
+            savePayment["downPayment"] = paymentInfo.downPayment ? paymentInfo.downPayment : '0.00';
+        }
 
         delete paymentDetails["payerId"];
         delete paymentDetails["title"];
@@ -113,37 +116,45 @@ module.exports = function(Ezpaypaymenttransactions) {
         delete paymentDetails["payableDate"];
 
         //savePayment["metaData"] = paymentDetails;
-
-        Ezpaypaymenttransactions.create(savePayment).then(transactionInfo => {
-            //console.log("transactionInfo", transactionInfo);
-            if (!isNull(savePayment["paymentFrequency"])) {
-                //console.log(savePayment["paymentFrequency"]);
-                switch (savePayment["paymentFrequency"]) {
-                    case PAYMENT_TERMS["ONETIME"]:
-                        //cb(null, { "success": true,"transactionId": transactionInfo["transactionId"]});
-                        break;
-                    case PAYMENT_TERMS["INSTALLMENTS"]:
-                        funCreateInstallments(transactionInfo["transactionId"], paymentInfo["installmentItems"], savePayment["totalAmount"], paymentInfo["hostBaseURL"], req,transactionInfo["merchantId"],transactionInfo["payerId"]);
-                        break;
-                    case PAYMENT_TERMS["RECURRING"]:
-                        funCreateRecurringPlan(transactionInfo["transactionId"], paymentInfo["recurringItems"], savePayment["totalAmount"], paymentInfo["hostBaseURL"], req,transactionInfo["merchantId"],transactionInfo["payerId"]);
-                        break;
-                }
-            } else {
-                //cb(null, { "success": true,"transactionId": transactionInfo["transactionId"]});
-            }
-
-            cb(null, {
-                "success": true,
-                "transactionId": transactionInfo["transactionId"]
-            });
-
-        }).catch(error => {
-            console.log("error", error);
-            cb(new HttpErrors.InternalServerError('Error while creating new payment transaction.', {
+        if(isNull(totalAmount) || totalAmount=='0.00'){
+            cb(new HttpErrors.InternalServerError('Plese provide total amount to be paid.', {
                 expose: false
             }));
-        });
+        }else{
+
+            Ezpaypaymenttransactions.create(savePayment).then(transactionInfo => {
+                //console.log("transactionInfo", transactionInfo);
+                if (!isNull(savePayment["paymentFrequency"])) {
+                    //console.log(savePayment["paymentFrequency"]);
+                    switch (savePayment["paymentFrequency"]) {
+                        case PAYMENT_TERMS["ONETIME"]:
+                            //cb(null, { "success": true,"transactionId": transactionInfo["transactionId"]});
+                        break;
+                        case PAYMENT_TERMS["INSTALLMENTS"]:
+                            funCreateInstallments(transactionInfo["transactionId"], paymentInfo["installmentItems"], savePayment["totalAmount"], paymentInfo["hostBaseURL"], req,transactionInfo["merchantId"],transactionInfo["payerId"]);
+                        break;
+                        case PAYMENT_TERMS["RECURRING"]:
+                            funCreateRecurringPlan(transactionInfo["transactionId"], paymentInfo["recurringItems"], savePayment["totalAmount"], paymentInfo["hostBaseURL"], req,transactionInfo["merchantId"],transactionInfo["payerId"]);
+                        break;
+                    }
+                } else {
+                    //cb(null, { "success": true,"transactionId": transactionInfo["transactionId"]});
+                }
+
+                funUpsertTransaction(PAYMENT_TERMS["PENDING"],transactionInfo,totalAmount,{});
+
+                cb(null, {
+                    "success": true,
+                    "transactionId": transactionInfo["transactionId"]
+                });
+
+            }).catch(error => {
+                //console.log("error", error);
+                cb(new HttpErrors.InternalServerError('Error while creating new payment transaction.', {
+                    expose: false
+                }));
+            });
+        }
     }
 
     function funCreateInstallments(refTransactionId, installmentItems, totalAmount, hostBaseURL, req, merchantId, payerId) {
@@ -1712,10 +1723,12 @@ module.exports = function(Ezpaypaymenttransactions) {
 
                                     cardRes["amount"] = _am;
                                     let pymentStatus = PAYMENT_TERMS["FAILED"];
+                                    //console.log("cardRes==>"+JSON.stringify(cardRes))
                                     Ezpaypaymenttransactions.paymentWithSavedCard(cardRes, function(err, successRes) {
                                         // Ezpaypaymenttransactions.paymentWithSavedCard(cardRes).then(successRes=>{
                                         if (err) {
                                             //res.redirect(failureUrl);
+                                            
                                             _ts = PAYMENT_TERMS["FAILED"];
                                         } else {
                                             pymentStatus = PAYMENT_TERMS["PAID"];
@@ -1736,7 +1749,7 @@ module.exports = function(Ezpaypaymenttransactions) {
                                         }
                                         savePayment["paymentDate"] = new Date();
 
-                                        funInsertTransaction(pymentStatus,transactionInfo,cardRes["amount"]);
+                                        funUpsertTransaction(pymentStatus,transactionInfo,cardRes["amount"],gatewayResponse);
 
                                         transactionInfo.updateAttributes(savePayment).then(updatedTransaction => {
 
@@ -1762,24 +1775,36 @@ module.exports = function(Ezpaypaymenttransactions) {
         });
     }
 
-    function funInsertTransaction(pymentStatus,transactionInfo,amount){
-        let insertJson = {
-            "refTransactionId": transactionInfo["transactionId"],
-            "merchantId": transactionInfo["merchantId"],
-            "payerId": transactionInfo["payerId"],
-            "installmentLabel":"Down Payment",
-            "amount": parseFloat(amount),
-            "dueDate": transactionInfo["payableDate"],
-            "paymentStatus": pymentStatus ,
-            "metaData":{},
-            "createdAt": new Date(),
-            "isActive":true,
-            "paymentTransactionDate": new Date()
-        };
+    function funUpsertTransaction(pymentStatus,transactionInfo,amount,metaData){
 
-        Ezpaypaymenttransactions.app.models.PaymentInstallments.create(insertJson).then(success=>{
+        Ezpaypaymenttransactions.app.models.PaymentInstallments.findOne({"where":{"refTransactionId":transactionInfo["transactionId"],"installmentLabel":"FULL_PAYMENT"}}).then(installInfo=>{
+            if(isValidObject(installInfo)){
+                //update
+                installInfo.updateAttributes({"paymentTransactionDate":new Date(),"paymentStatus":paymentStatus,"metaData":metaData}).then(update=>{
 
-        });
+                });
+            }else{
+                let insertJson = {
+                    "refTransactionId": transactionInfo["transactionId"],
+                    "merchantId": transactionInfo["merchantId"],
+                    "payerId": transactionInfo["payerId"],
+                    "installmentLabel":"FULL_PAYMENT",
+                    "amount": parseFloat(amount),
+                    "paymentStatus": pymentStatus ,
+                    "metaData":metaData,
+                    "createdAt": new Date(),
+                    "isActive":true
+                };
+                if(!isNull(transactionInfo["payableDate"])){
+                    insertJson["dueDate"]= new Date(transactionInfo["payableDate"]);
+                }
+
+                Ezpaypaymenttransactions.app.models.PaymentInstallments.create(insertJson).then(success=>{
+
+                });
+            }
+        })
+        
     }
 
     async function funMakeRefundInGateway(payload) {
@@ -2000,6 +2025,8 @@ module.exports = function(Ezpaypaymenttransactions) {
             paymentInfo = paymentInfo["meta"];
         }
 
+        console.log("paymentInfo=="+JSON.stringify(paymentInfo));
+
         Ezpaypaymenttransactions.app.models.savedCardsMetaData.findById(paymentInfo["cardId"]).then(cardInfo => {
             if (isValidObject(cardInfo)) {
                 funPayWithSavedCard({
@@ -2164,9 +2191,9 @@ module.exports = function(Ezpaypaymenttransactions) {
     Ezpaypaymenttransactions.dummyPayment = (data, cb) => {
 
         let json = {
-            "transactionId": "feda88d3-d1f0-4a73-ab16-474dd12dadc9",
-            "payerId": "fd9ee59d-7475-49cb-a15f-e6c70ef8240d",
-            "cardType":"DEBIT_CARD", // or DEBIT_CARD - default is CREDIT_CARD
+             "transactionId": "a7d2e342-b0e1-44a8-9928-fdc20ff2c2af",
+             "payerId": "fd9ee59d-7475-49cb-a15f-e6c70ef8240d",
+            "cardType":"CREDIT_CARD", // or DEBIT_CARD - default is CREDIT_CARD
             "hostBaseURL":"http://localhost:3010/", //base url of the host where service apis are running
             "successUrl": "http://localhost:3010/success",   //redirection url should be an http or https url 
             "failureUrl": "http://localhost:3010/failure",   //should be an http or https url 
@@ -2245,7 +2272,7 @@ module.exports = function(Ezpaypaymenttransactions) {
                 arg: 'merchantId', type: 'string', 'http': { 'source': 'query'}, 'required': true
             } ,
             {
-                arg: 'year', type: 'string', 'http': { 'source': 'query'}, 'required': false
+                arg: 'year', type: 'number', 'http': { 'source': 'query'}, 'required': false
             } 
             ],
             returns: {
@@ -2256,6 +2283,243 @@ module.exports = function(Ezpaypaymenttransactions) {
     );
 
     Ezpaypaymenttransactions.getRevenueGraphData = (merchantId,year, cb) => {
+        let _year_match = new Date().getFullYear();
+        let _error = false;
+        if(!isNull(year)){
+            _year_match = year;
+            if (String(year).length != 4) {
+                _error = true;
+                cb(new HttpErrors.InternalServerError('Year is not formmatted correctly.', {
+                    expose: false
+                }));
+            }
+            if (!(parseInt(year) > 0)) {
+                _error = true;
+                //console.log("qweqweqwerqwer")
+                cb(new HttpErrors.InternalServerError('Year is not formmatted correctly.', {
+                    expose: false
+                }));
+            }
+        }
+
+        if(_year_match && _error==false ){
+            let monthObj = {"1":"Jan","2":"Feb","3":"Mar","4":"Apr","5":"May","6":"Jun","7":"Jul","8":"Aug","9":"Sep","10":"Oct","11":"Nov","12":"Dec"};
+            let dummyResponse = [['Jan',0],['Feb',0],['Mar',0],['Apr',0],['May',0],['Jun',0],['Jul',0],['Aug',0],['Sep',0],['Oct',0],['Nov',0],['Dec',0]];
+            
+            var rewardCollection = Ezpaypaymenttransactions.getDataSource().connector.collection(Ezpaypaymenttransactions.app.models.PaymentInstallments.modelName);
+            var cursorTest = rewardCollection.aggregate([
+                {
+                    $match: {
+                        $and: [
+                            { "merchantId": merchantId },
+                            { "isActive": true },
+                            { "paymentStatus": {"$in":["PAID","PARTIALLY_PAID"]} },
+                            { "$expr": { "$eq": [{ "$year": "$paymentTransactionDate" }, _year_match] } }
+                        ]
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": {
+                            $month: "$paymentTransactionDate",
+                        },
+                        "totalRevenue": {
+                            "$sum": "$amount"
+                        },
+                    }
+                }
+            ], function (err, res) {
+                var async = require('async');
+                var returnArr = [];
+                if(!isNull(res)){
+                    if(res.length > 0){
+                        
+                        async.each(res,function(item,clb){
+                            let tmpArr = [];
+                            tmpArr.push(monthObj[item["_id"]]);
+                            tmpArr.push(item["totalRevenue"]);
+                            returnArr.push(tmpArr);
+                            clb();
+                        },function(){
+                            const array3 = dummyResponse.map(
+                                array => array[0] === returnArr[0][0] ? returnArr[0] : array
+                            );
+                            cb(null, {"success":true,"data":array3});
+                        });
+                    }else{
+                        cb(null, {"success":true,"data":dummyResponse});
+                    }
+                }else{
+                    cb(null, {"success":true,"data":dummyResponse});
+                }
+            });
+        }else{
+            cb(new HttpErrors.InternalServerError('Year is not formmatted correctly.', {
+                    expose: false
+            }));
+        }
+    }
+
+
+
+    Ezpaypaymenttransactions.remoteMethod(
+        'getTransactionGraphData', {
+            http: {
+                verb: 'post'
+            },
+            description: ["This request will provide transaction details"],
+            accepts: [
+            {
+                arg: 'merchantId', type: 'string', 'http': { 'source': 'query'}, 'required': true
+            } ,
+            {
+                arg: 'year', type: 'number', 'http': { 'source': 'query'}, 'required': false
+            } 
+            ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    function groupBy(objectArray, property) {
+      return objectArray.reduce(function (acc, obj) {
+        var key = obj[property];
+        if (!acc[key]) {
+          acc[key] = [];
+        }
+        acc[key].push(obj);
+        return acc;
+      }, {});
+    }
+
+    Ezpaypaymenttransactions.getTransactionGraphData = (merchantId,year, cb) => {
+        let _year_match = new Date().getFullYear();
+        let _error = false;
+        if(!isNull(year)){
+            _year_match = year;
+            if (String(year).length != 4) {
+                _error = true;
+                cb(new HttpErrors.InternalServerError('Year is not formmatted correctly.', {
+                    expose: false
+                }));
+            }
+            if (!(parseInt(year) > 0)) {
+                _error = true;
+                //console.log("qweqweqwerqwer")
+                cb(new HttpErrors.InternalServerError('Year is not formmatted correctly.', {
+                    expose: false
+                }));
+            }
+        }
+
+        if(_year_match && _error==false ){
+            let monthObj = {"1":"Jan","2":"Feb","3":"Mar","4":"Apr","5":"May","6":"Jun","7":"Jul","8":"Aug","9":"Sep","10":"Oct","11":"Nov","12":"Dec"};
+            let dummyResponse = [['Jan',0,0,0],['Feb',0,0,0],['Mar',0,0,0],['Apr',0,0,0],['May',0,0,0],['Jun',0,0,0],['Jul',0,0,0],['Aug',0,0,0],['Sep',0,0,0],['Oct',0,0,0],['Nov',0,0,0],['Dec',0,0,0]];
+            
+            var rewardCollection = Ezpaypaymenttransactions.getDataSource().connector.collection(Ezpaypaymenttransactions.app.models.PaymentInstallments.modelName);
+            var cursorTest = rewardCollection.aggregate([
+                {
+                    $match: {
+                        $and: [
+                            { "merchantId": merchantId },
+                            { "isActive": true },
+                            { "paymentStatus": {"$in":["PAID","PENDING","FAILED"]} },
+                            { "$expr": { "$eq": [{ "$year": "$paymentTransactionDate" }, _year_match] } }
+                        ]
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": {
+                            "month": { "$month": "$paymentTransactionDate"  },
+                            "paymentStatus": "$paymentStatus"
+                        },
+                        "count": {
+                            "$sum": 1
+                        },
+                    }
+                }
+            ], function (err, res) {
+                var async = require('async');
+                var returnArr = [];
+
+                if(!isNull(res)){
+                    if(res.length > 0){
+                            
+                        //cb(null, {"success":true,"data":res});
+
+                        async.each(res,function(item,clb){
+                            let tmpArr = [];
+                            //tmpArr.push(monthObj[item["_id"]["month"]]);
+                            //tmpArr.push(item["totalRevenue"]);
+                            let tmpObj = {"month":item["_id"]["month"] ,"count": item["count"],"transactionStatus": item["_id"]["paymentStatus"] };
+                            //returnArr[item["_id"]["month"]] = [];
+                            //returnArr[item["_id"]["month"]].push(tmpObj);
+                            returnArr.push(tmpObj);
+                            
+                            clb();
+                        },function(){
+                            returnArr = returnArr.sort((a, b) => (a["transactionStatus"] > b["transactionStatus"]) ? 1 : -1);
+                            console.log(returnArr);
+                            let groupedResult = groupBy( returnArr,'month' );
+                            let combinedResults = [];
+                            async.forEachOf(groupedResult, function(item, key, callback){
+                                let tmpArr = [];
+                                tmpArr.push(monthObj[key]);
+                                if (!(item.filter(function(e) { return e["transactionStatus"] === PAYMENT_TERMS["PAID"]; }).length > 0)) {
+                                    item.push({"month": key,"count":0,"transactionStatus": PAYMENT_TERMS["PAID"] });
+                                }
+                                // if (!(item.filter(function(e) { return e["transactionStatus"] === PAYMENT_TERMS["PARTIALLY_PAID"]; }).length > 0)) {
+                                //     item.push({"month": key,"count":0,"transactionStatus": PAYMENT_TERMS["PARTIALLY_PAID"] });
+                                // }
+                                if (!(item.filter(function(e) { return e["transactionStatus"] === PAYMENT_TERMS["FAILED"]; }).length > 0)) {
+                                    item.push({"month": key,"count":0,"transactionStatus": PAYMENT_TERMS["FAILED"] });
+                                }
+                                if (!(item.filter(function(e) { return e["transactionStatus"] === PAYMENT_TERMS["PENDING"]; }).length > 0)) {
+                                    item.push({"month": key,"count":0,"transactionStatus": PAYMENT_TERMS["PENDING"] });
+                                }
+                                
+
+                                async.each(item,function(innerItem,clbk){
+                                    switch(innerItem["transactionStatus"]){
+                                        case PAYMENT_TERMS["PAID"]:
+                                        case PAYMENT_TERMS["PARTIALLY_PAID"]:
+                                        case PAYMENT_TERMS["PENDING"]:
+                                        case PAYMENT_TERMS["FAILED"]:
+                                            tmpArr.push(innerItem["count"]);
+                                        break;
+                                        default:
+                                            tmpArr.push(0);
+                                        break;
+                                    }
+                                    
+                                    clbk();
+                                },function(){
+                                    combinedResults.push(tmpArr);
+                                    callback();
+                                });
+                            }, function(err){
+                                const array3 = dummyResponse.map(
+                                    array => array[0] === combinedResults[0][0] ? combinedResults[0] : array
+                                );
+                                cb(null, {"success":true,"data": array3  });
+                            });
+                            
+                        });
+                    }else{
+                        cb(null, {"success":true,"data":dummyResponse});
+                    }
+                }else{
+                    cb(null, {"success":true,"data":dummyResponse});
+                }
+            });
+        }else{
+            cb(new HttpErrors.InternalServerError('Year is not formmatted correctly.', {
+                    expose: false
+            }));
+        }
     }
 
 
