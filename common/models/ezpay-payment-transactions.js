@@ -2437,7 +2437,7 @@ module.exports = function(Ezpaypaymenttransactions) {
                             "paymentStatus": "$paymentStatus"
                         },
                         "count": {
-                            "$sum": 1
+                            "$sum": "$amount"
                         },
                     }
                 }
