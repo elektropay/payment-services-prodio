@@ -100,7 +100,8 @@ module.exports = function(Ezpaypaymenttransactions) {
             "payableDate": paymentInfo.payableDate ? paymentInfo.payableDate : (paymentInfo.dueDate?paymentInfo.dueDate:''),
             "transactionStatus": PAYMENT_TERMS["PENDING"],
             "isActive": true,
-            "createdAt": new Date()
+            "createdAt": new Date(),
+            "metaData":{}
         };
 
         if(savePayment["paymentFrequency"]!=PAYMENT_TERMS["ONETIME"]){
@@ -115,7 +116,12 @@ module.exports = function(Ezpaypaymenttransactions) {
         delete paymentDetails["isRecurring"];
         delete paymentDetails["payableDate"];
 
-        //savePayment["metaData"] = paymentDetails;
+        if(!isNull(paymentDetails["metaData"])){
+            savePayment["metaData"] = paymentDetails["metaData"];
+        }
+        
+        savePayment["metaData"]["displayItems"] = paymentDetails["displayItems"];
+
         if(isNull(totalAmount) || totalAmount=='0.00'){
             cb(new HttpErrors.InternalServerError('Plese provide total amount to be paid.', {
                 expose: false
