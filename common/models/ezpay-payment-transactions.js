@@ -12,7 +12,8 @@ const {
     isArray,
     isObject,
     print,
-    isNull
+    isNull,
+    convertObjectIdToString
 } = require('../../utility/helper');
 
 const {
@@ -609,8 +610,14 @@ module.exports = function(Ezpaypaymenttransactions) {
         if (!isNull(paymentInfo["meta"])) {
             paymentInfo = paymentInfo["meta"];
         }
-        let _surl = url + "/ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["successUrl"] + "&success=true";
-        let _furl = url + "/ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["failureUrl"] + "&success=false";
+
+        let projectId = "";
+        if (!isNull(paymentInfo["projectId"])) {
+            projectId = paymentInfo["projectId"];
+        }
+
+        let _surl = url + "/ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["successUrl"] + "&success=true&projectId="+projectId;
+        let _furl = url + "/ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["failureUrl"] + "&success=false&projectId="+projectId;
 
         _furl = _furl.replace("//", "/");
         _surl = _surl.replace("//", "/");
@@ -1374,6 +1381,86 @@ module.exports = function(Ezpaypaymenttransactions) {
 
 
     Ezpaypaymenttransactions.remoteMethod(
+        'getProjectTransactionStats', {
+            http: {
+                verb: 'post'
+            },
+            description: ["This request will provide project transaction details"],
+            accepts: [
+                {
+                    arg: 'merchantId',
+                    type: 'string',
+                    required: true,
+                    http: {
+                        source: 'query'
+                    }
+                }, 
+                {
+                    arg: 'projectId',
+                    type: 'string',
+                    required: true,
+                    http: {
+                        source: 'query'
+                    }
+                }
+            ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    Ezpaypaymenttransactions.getProjectTransactionStats = (merchantId,projectId, cb) => {
+
+        var rewardCollection = Ezpaypaymenttransactions.getDataSource().connector.collection(Ezpaypaymenttransactions.modelName);
+        var cursorTest = rewardCollection.aggregate([{
+                $match: {
+                    $and: [{"merchantId": merchantId},{"projectId": projectId}]
+                }
+            },
+            {
+                "$group": {
+                    "_id": {
+                        transactionStatus: "$transactionStatus",
+                    },
+                    "grand_total": {
+                        "$sum": "$totalAmount"
+                    },
+                }
+            }
+        ], function(err, cursor) {
+            if (err) {
+                cb(new HttpErrors.InternalServerError(err, {
+                    expose: false
+                }));
+            } else {
+
+                let retJson = {
+                    "amountPending": "0.00",
+                    "totalCollections": "0.00"
+                };
+
+                async.each(cursor, function(item, callbk) {
+                    if (item["_id"]["transactionStatus"] == PAYMENT_TERMS["DONE"] || item["_id"]["transactionStatus"] == PAYMENT_TERMS["PAID"]) {
+                        retJson["totalCollections"] = item["grand_total"]
+                    }
+                    if (item["_id"]["transactionStatus"] == PAYMENT_TERMS["PENDING"]) {
+                        retJson["amountPending"] = item["grand_total"];
+                    }
+                    callbk();
+
+                }, function() {
+                    cb(null, retJson);
+                });
+            }
+        });
+
+    }
+
+
+
+    Ezpaypaymenttransactions.remoteMethod(
         'getTransactionStats', {
             http: {
                 verb: 'post'
@@ -1439,8 +1526,6 @@ module.exports = function(Ezpaypaymenttransactions) {
                 }, function() {
                     cb(null, retJson);
                 });
-
-
             }
         });
 
@@ -1474,6 +1559,11 @@ module.exports = function(Ezpaypaymenttransactions) {
                 "isActive": true,
                 "createdAt": new Date()
             };
+
+            if(!isNull(data["projectId"])){
+                //
+                savePayment["projectId"] = convertObjectIdToString(projectId);
+            }
             funCreateTransactionAndRedirect(savePayment, res, redirectUrl);
         } else {
             let savePayment = {
@@ -1487,6 +1577,10 @@ module.exports = function(Ezpaypaymenttransactions) {
                 "isActive": true,
                 "createdAt": new Date()
             };
+
+            if(!isNull(data["projectId"])){
+                savePayment["projectId"] = convertObjectIdToString(projectId);
+            }
             funCreateTransactionAndRedirect(savePayment, res, redirectUrl);
         }
     }
@@ -1529,6 +1623,14 @@ module.exports = function(Ezpaypaymenttransactions) {
                         return ctx.res;
                     }
                 },
+                {
+                    arg: 'projectId',
+                    type: 'string',
+                    required: false,
+                    http: {
+                        source: 'query'
+                    }
+                }
             ],
             returns: {
                 type: 'object',
@@ -1538,7 +1640,11 @@ module.exports = function(Ezpaypaymenttransactions) {
     );
 
 
-    Ezpaypaymenttransactions.receivePayUWebhooks = (data, redirectUrl, merchantId, res, next) => {
+    Ezpaypaymenttransactions.receivePayUWebhooks = (data, redirectUrl, merchantId, res,projectId, next) => {
+
+        if(!isNull(projectId)){
+            data["projectId"] = projectId;
+        }
 
         Ezpaypaymenttransactions.app.models.ezpayPayees.findOne({
             "where": {
