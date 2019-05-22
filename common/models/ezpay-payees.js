@@ -90,9 +90,10 @@ module.exports = function(Ezpaypayees) {
                         //if yes, send valid success response
                         //if not
                         if(isNull(payeeData["merchantId"])){
-                            cb(new HttpErrors.InternalServerError('Payee Id already exists.', {
-                                expose: false
-                            }));
+                            // cb(new HttpErrors.InternalServerError('Payee Id already exists.', {
+                            //     expose: false
+                            // }));
+                            cb(null,{"success":true,"isAlreadyExists":true,"payerId":payeeData["payeeId"]});
                         }else{
                             cb(null,{"success":true,"isAlreadyExists":true,"payerId":payeeData["payeeId"]});
                         }
