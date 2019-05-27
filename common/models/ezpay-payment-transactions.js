@@ -765,7 +765,7 @@ module.exports = function(Ezpaypaymenttransactions) {
     );
 
     function funNormalizeStr(str) {
-        return str.replace("//", "/").replace("//", "/").replace("http:/", "http://").replace("https:/", "https://");
+        return str.replace("//", "/").replace("//", "/").replace("http:/", "http://").replace("https:/", "https://").replace("/api/api/","/api/");
     }
 
     function funGetBaseUrl(hostBaseURL, req) {

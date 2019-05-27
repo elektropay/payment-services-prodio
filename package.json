@@ -23,7 +23,7 @@
     "loopback-boot": "^2.6.5",
     "loopback-component-explorer": "^6.2.0",
     "loopback-connector-mongodb": "^1.18.1",
-    "openedge-connector-prodio": "0.0.10",
+    "openedge-connector-prodio": "1.0.1",
     "payment-module-prodio": "^1.0.24",
     "payu-connector-prodio": "0.0.2",
     "serve-favicon": "^2.0.1",
