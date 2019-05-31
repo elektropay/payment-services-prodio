@@ -616,8 +616,13 @@ module.exports = function(Ezpaypaymenttransactions) {
             projectId = paymentInfo["projectId"];
         }
 
-        let _surl = url + "/ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["successUrl"] + "&success=true&projectId="+projectId;
-        let _furl = url + "/ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["failureUrl"] + "&success=false&projectId="+projectId;
+        let merchantId = "";
+        if (!isNull(paymentInfo["merchantId"])) {
+            merchantId = paymentInfo["merchantId"];
+        }
+
+        let _surl = url + "/ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["successUrl"] + "&success=true&projectId="+projectId+"&merchantId="+merchantId;
+        let _furl = url + "/ezpayPaymentTransactions/receivePayUWebhooks?redirectUrl=" + paymentInfo["failureUrl"] + "&success=false&projectId="+projectId+"&merchantId="+merchantId;
 
         _furl = _furl.replace("//", "/");
         _surl = _surl.replace("//", "/");
@@ -1415,9 +1420,10 @@ module.exports = function(Ezpaypaymenttransactions) {
     Ezpaypaymenttransactions.getProjectTransactionStats = (merchantId,projectId, cb) => {
 
         var rewardCollection = Ezpaypaymenttransactions.getDataSource().connector.collection(Ezpaypaymenttransactions.modelName);
+        //{"merchantId": merchantId},
         var cursorTest = rewardCollection.aggregate([{
                 $match: {
-                    $and: [{"merchantId": merchantId},{"projectId": convertObjectIdToString(projectId)}]
+                    $and: [{"projectId": convertObjectIdToString(projectId)}]
                 }
             },
             {
