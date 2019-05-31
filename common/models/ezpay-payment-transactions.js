@@ -1562,7 +1562,7 @@ module.exports = function(Ezpaypaymenttransactions) {
 
             if(!isNull(data["projectId"])){
                 //
-                savePayment["projectId"] = convertObjectIdToString(projectId);
+                savePayment["projectId"] = convertObjectIdToString(data["projectId"]);
             }
             funCreateTransactionAndRedirect(savePayment, res, redirectUrl);
         } else {
@@ -1579,7 +1579,7 @@ module.exports = function(Ezpaypaymenttransactions) {
             };
 
             if(!isNull(data["projectId"])){
-                savePayment["projectId"] = convertObjectIdToString(projectId);
+                savePayment["projectId"] = convertObjectIdToString(data["projectId"]);
             }
             funCreateTransactionAndRedirect(savePayment, res, redirectUrl);
         }
