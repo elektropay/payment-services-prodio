@@ -654,7 +654,8 @@ module.exports = function(Ezpaypaymenttransactions) {
                             "totalAmountPaid": transInfo["totalAmount"],
                             "paymentDate": new Date()
                         }).then(updatedCount => {
-                            cb(null, updatedCount);
+                            cb(null, sdkResponse);
+                           // cb(null, updatedCount);
                         }).catch(error => {
                             cb(new HttpErrors.InternalServerError('Server Error', {
                                 expose: false
