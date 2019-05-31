@@ -1416,7 +1416,7 @@ module.exports = function(Ezpaypaymenttransactions) {
         var rewardCollection = Ezpaypaymenttransactions.getDataSource().connector.collection(Ezpaypaymenttransactions.modelName);
         var cursorTest = rewardCollection.aggregate([{
                 $match: {
-                    $and: [{"merchantId": merchantId},{"projectId": projectId}]
+                    $and: [{"merchantId": merchantId},{"projectId": convertObjectIdToString(projectId)}]
                 }
             },
             {
