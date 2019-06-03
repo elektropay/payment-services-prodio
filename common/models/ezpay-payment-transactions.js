@@ -1,5 +1,4 @@
 'use strict';
-//https://prodiodev.justoutdoor.in/payment.html?24310b0c-694c-43dd-aa2a-7ddc03900e96&https://prodiodev.justoutdoor.in&https://prodiodev.justoutdoor.in&order_id=24310b0c&response_code=6&secondary_response_code=0&response_code_text=Invalid%20Reference%20Error:%20Returns%20must%20reference%20approved%20Sales,%20Authorizations,%20or%20Captures
 const HttpErrors = require('http-errors');
 const async = require('async');
 const {
@@ -241,7 +240,6 @@ module.exports = function(Ezpaypaymenttransactions) {
                         "refTransactionId": item["refTransactionId"]
                     }
                     schedular.setEvent(evenObj);
-                    //console.log("scheduling done..."+new Date(item["dueDate"]));
                     clb();
                 }, function() {
                     console.log("All scheduled..");
@@ -404,7 +402,6 @@ module.exports = function(Ezpaypaymenttransactions) {
                                             };
 
                                             savePayment["totalAmountPending"] = (parseFloat(transInfo["totalAmount"]) - parseFloat(savePayment["totalAmountPaid"]));
-                                            console.log(transInfo);
                                             if (parseInt(savePayment["totalAmountPending"]) == 0) {
                                                 savePayment["transactionStatus"] = PAYMENT_TERMS["PAID"];
                                             }
@@ -639,7 +636,6 @@ module.exports = function(Ezpaypaymenttransactions) {
         if (!isNull(paymentInfo["transactionId"])) {
             transactionId = paymentInfo["transactionId"];
         }
-        //console.log(" \n \n paymentInfo==>"+JSON.stringify(paymentInfo));
         Ezpaypaymenttransactions.findById(transactionId).then(transInfo => {
             if (isValidObject(transInfo)) {
                 if (transInfo["transactionStatus"] == PAYMENT_TERMS["PAID"]) {
@@ -651,7 +647,6 @@ module.exports = function(Ezpaypaymenttransactions) {
                     funMakeDirectPaymentInGateway({
                         "paymentInfo": paymentInfo
                     }).then(sdkResponse => {
-                        console.log(sdkResponse);
 
                         transInfo.updateAttributes({
                             "transactionStatus": PAYMENT_TERMS["PAID"],
@@ -771,7 +766,7 @@ module.exports = function(Ezpaypaymenttransactions) {
     );
 
     function funNormalizeStr(str) {
-        return str.replace("//", "/").replace("//", "/").replace("http:/", "http://").replace("https:/", "https://").replace("/api/api/","/api/");
+        return str.replace("//", "/").replace("//", "/").replace("http:/", "http://").replace("https:/", "https://").replace("/api/api/","/api/").replace("/api//","/api/");
     }
 
     function funGetBaseUrl(hostBaseURL, req) {
@@ -781,7 +776,7 @@ module.exports = function(Ezpaypaymenttransactions) {
         } else {
             if (!isNull(req)) {
                 req = JSON.parse(stringify(req));
-                console.log(req.headers);
+                //console.log(req.headers);
                 url = req.headers.origin;
             }
         }
@@ -894,12 +889,12 @@ module.exports = function(Ezpaypaymenttransactions) {
                                         }));
                                     })
                                 } else {
-                                    console.log("paymenturl_successs", transactionPayload.meta.successUrl);
+                                    //console.log("paymenturl_successs", transactionPayload.meta.successUrl);
                                     let successUrl = transactionPayload.meta.successUrl ? transactionPayload.meta.successUrl : '';
                                     let failureUrl = transactionPayload.meta.failureUrl ? transactionPayload.meta.failureUrl : '';
                                     let paymentReturnUrl = '';
                                     if (successUrl) {
-                                        console.log("entererdddd", successUrl);
+                                        //console.log("entererdddd", successUrl);
                                         paymentReturnUrl = `${transactionPayload.meta.returnUrl}?${transInfo.transactionId}&${successUrl}&${failureUrl}`;
                                     } else {
 
@@ -1111,7 +1106,7 @@ module.exports = function(Ezpaypaymenttransactions) {
     );
 
     Ezpaypaymenttransactions.getPayersTransactions = (payerId, pageNo, filterCriteria, cb) => {
-        console.log(filterCriteria);
+        //console.log(filterCriteria);
         if (!isNull(filterCriteria["meta"])) {
             filterCriteria = filterCriteria["meta"]["filterCriteria"];
         }
@@ -1207,7 +1202,7 @@ module.exports = function(Ezpaypaymenttransactions) {
             }
 
         ], function(err, res) {
-            console.log(res);
+            
             if (res.length) {
 
                 async.each(res, function(item, callbk) {
@@ -1251,6 +1246,121 @@ module.exports = function(Ezpaypaymenttransactions) {
 
 
     Ezpaypaymenttransactions.remoteMethod(
+        'getRevenuePerPayer', {
+            http: {
+                verb: 'post'
+            },
+            description: ["This request will initiate a payment request transaction"],
+            accepts: [{
+                arg: 'merchantId',
+                type: 'string',
+                required: true,
+                http: {
+                    source: 'query'
+                }
+            }, ],
+            returns: {
+                type: 'object',
+                root: true
+            }
+        }
+    );
+
+    function dynamicSort(property) {
+        var sortOrder = 1;
+        if(property[0] === "-") {
+            sortOrder = -1;
+            property = property.substr(1);
+        }
+        return function (a,b) {
+            /* next line works with strings and numbers, 
+             * and you may want to customize it to your needs
+             */
+            var result = (a[property] < b[property]) ? -1 : (a[property] > b[property]) ? 1 : 0;
+            return result * sortOrder;
+        }
+    }
+
+    Ezpaypaymenttransactions.getRevenuePerPayer = (merchantId, cb) => {
+
+        let allPayerArr = [];
+        let allPayerIds = [];
+        var transactionCollection = Ezpaypaymenttransactions.getDataSource().connector.collection(Ezpaypaymenttransactions.modelName);
+        var cursorTest = transactionCollection.aggregate([{
+                $match: {
+                    $and: [{
+                            merchantId: merchantId
+                        },
+                        {
+                            "transactionStatus": PAYMENT_TERMS["PAID"]
+                        }
+                    ]
+                }
+            },
+            {
+                "$group": {
+                    "_id": {
+                        id: "$payerId"
+                    },
+                    "grand_total": {
+                        "$sum": "$totalAmount"
+                    },
+
+                }
+            },
+            {
+                "$project": {
+                    "_id": 1,
+                    "grand_total": 1,
+                    "Payer": 1
+                }
+            }
+
+        ], function(err, res) {
+            
+            if (res.length) {
+
+                async.each(res, function(item, callbk) {
+                    allPayerArr[item["_id"]["id"]] = item["grand_total"];
+                    //allPayerArr.push({"payeeId":item["_id"]["id"],"grand_total":item["grand_total"]});
+                    allPayerIds.push(item["_id"]["id"]);
+                    callbk();
+                }, function() {
+                    //console.log(allPayerArr); console.log(allPayerIds);
+                    Ezpaypaymenttransactions.app.models.ezpayPayees.find({
+                        "where": {
+                            "payeeId": {
+                                "inq": allPayerIds
+                            }
+                        }
+                    }).then(allPayers => {
+                        //let resultArr = [allPayers, allPayerArr].reduce((a, b) => a.map((c, i) => Object.assign({}, c, b[i])));
+                        //let resultArr = mergeRecursive(allPayers,allPayerArr);
+                        let tmpArr = [];
+                        let tmpObj = {};
+                        allPayers = JSON.parse(JSON.stringify(allPayers));
+                        async.each(allPayers, function(itemP, cllbk) {
+                            tmpObj = {};
+                            tmpObj = itemP;
+                            tmpObj["totalAmount"] = allPayerArr[itemP["payeeId"]];
+                            tmpArr.push(tmpObj);
+                            cllbk();
+                        }, function() {
+
+                            cb(null, tmpArr.dynamicSort("-totalAmount"));
+                        });
+                    }).catch(err => {
+                        console.log(err)
+                    });
+                });
+            } else {
+                cb(null, res);
+            }
+        });
+    }
+
+
+    Ezpaypaymenttransactions.remoteMethod(
         'getTransactionDetails', {
             http: {
                 verb: 'post'
@@ -1272,7 +1382,7 @@ module.exports = function(Ezpaypaymenttransactions) {
     );
 
     Ezpaypaymenttransactions.getTransactionDetails = (transactionId, cb) => {
-        console.log("transactionId=>" + transactionId)
+        
         Ezpaypaymenttransactions.findOne({
             "where": {
                 "transactionId": transactionId
@@ -2098,14 +2208,14 @@ module.exports = function(Ezpaypaymenttransactions) {
 
                 Ezpaypaymenttransactions.app.models.savedCardsMetaData.addEditUserCards(insertJson, function(err, cardRes) {
                     if (err) {
-                        console.log("error");
+                        
                         res.redirect(failureUrl);
                     } else {
-                        console.log("corrct");
+                        
                         if (parseInt(response_code) == 1) {
                             res.redirect(successUrl);
                         } else {
-                            console.log("error22");
+                            
                             res.redirect(failureUrl);
                         }
                     }
@@ -2143,8 +2253,6 @@ module.exports = function(Ezpaypaymenttransactions) {
         if (!isNull(paymentInfo["meta"])) {
             paymentInfo = paymentInfo["meta"];
         }
-
-        console.log("paymentInfo=="+JSON.stringify(paymentInfo));
 
         Ezpaypaymenttransactions.app.models.savedCardsMetaData.findById(paymentInfo["cardId"]).then(cardInfo => {
             if (isValidObject(cardInfo)) {
@@ -2270,13 +2378,11 @@ module.exports = function(Ezpaypaymenttransactions) {
         funVerifyCardOE({
             "paymentInfo": _payload
         }).then(sdkResponse => {
-            console.log(sdkResponse);
             sdkResponse = JSON.parse(JSON.stringify(sdkResponse));
             cb(null, sdkResponse);
 
 
         }).catch(error => {
-            console.error(error);
             let _msg = isNull(error["message"]) ? 'Internal Server Error' : error["message"];
             cb(new HttpErrors.InternalServerError(_msg, {
                 expose: false
@@ -2326,8 +2432,6 @@ module.exports = function(Ezpaypaymenttransactions) {
 
 
         paymentObj.execute(processPayload, response => {
-            console.log("response", response.status);
-            console.log("response data", response.data);
             return cb(null, response.data);
         })
     }
