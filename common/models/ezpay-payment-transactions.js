@@ -2004,7 +2004,7 @@ module.exports = function(Ezpaypaymenttransactions) {
         });
     }
 
-    function funUpsertTransaction(pymentStatus,transactionInfo,amount,metaData){
+    function funUpsertTransaction(paymentStatus,transactionInfo,amount,metaData){
 
         Ezpaypaymenttransactions.app.models.PaymentInstallments.findOne({"where":{"refTransactionId":transactionInfo["transactionId"],"installmentLabel":"FULL_PAYMENT"}}).then(installInfo=>{
             if(isValidObject(installInfo)){
@@ -2019,7 +2019,7 @@ module.exports = function(Ezpaypaymenttransactions) {
                     "payerId": transactionInfo["payerId"],
                     "installmentLabel":"FULL_PAYMENT",
                     "amount": parseFloat(amount),
-                    "paymentStatus": pymentStatus ,
+                    "paymentStatus": paymentStatus ,
                     "metaData":metaData,
                     "createdAt": new Date(),
                     "isActive":true
